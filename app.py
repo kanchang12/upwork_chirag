@@ -6,7 +6,7 @@ from io import BytesIO
 import openai
 import re
 import json
-from dotenv import load_dotenv
+
 import pymongo
 
 load_dotenv()  # Load environment variables from .env file
