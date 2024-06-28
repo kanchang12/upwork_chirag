@@ -9,3 +9,8 @@ python-docx
 pymongo  # Downgrade pymongo to a version compatible with your setup
 cohere
 flask-cors
+
+ os
+
+pandas
+
