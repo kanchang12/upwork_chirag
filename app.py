@@ -9,7 +9,7 @@ import json
 
 import pymongo
 
-load_dotenv()  # Load environment variables from .env file
+
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
