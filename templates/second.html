@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Analysis Tool</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 80%;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            color: #003366;
+        }
+        .submit-button, .download-button {
+            background-color: #003366;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .submit-button:hover, .download-button:hover {
+            background-color: #0055a5;
+        }
+        .column-select, .weight-input {
+            margin: 5px;
+            padding: 5px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .nav-link {
+            display: block;
+            margin-bottom: 20px;
+            color: #003366;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .nav-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="{{ url_for('index') }}" class="nav-link">Chatbot</a>
+        
+        <h2>CSV Analysis Tool</h2>
+        
+        <div class="upload-section">
+            <input type="file" id="csv-file" accept=".csv" required>
+            <button onclick="uploadCSV()" class="submit-button">Upload CSV</button>
+        </div>
+        
+        <div id="analysis-section" style="display:none;">
+            <h3>Select Columns and Weights</h3>
+            <div id="column-selectors"></div>
+            <div id="weight-inputs"></div>
+            <button onclick="calculateWeightedRank()" class="submit-button">Calculate</button>
+        </div>
+        
+        <div id="results-section" style="display:none;">
+            <h3>Results</h3>
+            <table id="results-table"></table>
+            <button onclick="downloadResults()" class="download-button">Download Results (XLSX)</button>
+        </div>
+    </div>
+
+    <script>
+        let csvData = [];
+        let headers = [];
+
+        function uploadCSV() {
+            const fileInput = document.getElementById('csv-file');
+            const file = fileInput.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const content = e.target.result;
+                    processData(content);
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        function processData(content) {
+            const lines = content.split('\n');
+            headers = lines[0].split(',');
+            csvData = lines.slice(1).map(line => {
+                const values = line.split(',');
+                return headers.reduce((obj, header, index) => {
+                    obj[header.trim()] = values[index];
+                    return obj;
+                }, {});
+            });
+            setupAnalysisSection();
+        }
+
+        function setupAnalysisSection() {
+            const columnSelectors = document.getElementById('column-selectors');
+            const weightInputs = document.getElementById('weight-inputs');
+            columnSelectors.innerHTML = '';
+            weightInputs.innerHTML = '';
+
+            for (let i = 0; i < 5; i++) {
+                const select = document.createElement('select');
+                select.className = 'column-select';
+                select.id = `column-${i}`;
+                headers.forEach(header => {
+                    const option = document.createElement('option');
+                    option.value = header;
+                    option.textContent = header;
+                    select.appendChild(option);
+                });
+                columnSelectors.appendChild(select);
+
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.className = 'weight-input';
+                input.id = `weight-${i}`;
+                input.min = 0;
+                input.max = 100;
+                input.placeholder = 'Weight %';
+                weightInputs.appendChild(input);
+            }
+
+            document.getElementById('analysis-section').style.display = 'block';
+        }
+
+        function calculateWeightedRank() {
+            const selectedColumns = [];
+            const weights = [];
+
+            for (let i = 0; i < 5; i++) {
+                const column = document.getElementById(`column-${i}`).value;
+                const weight = parseFloat(document.getElementById(`weight-${i}`).value) / 100;
+                if (column && !isNaN(weight)) {
+                    selectedColumns.push(column);
+                    weights.push(weight);
+                }
+            }
+
+            if (selectedColumns.length === 0) {
+                alert('Please select at least one column and provide a weight.');
+                return;
+            }
+
+            const weightedData = csvData.map(row => {
+                let weightedSum = 0;
+                selectedColumns.forEach((column, index) => {
+                    const value = parseFloat(row[column]) || 0;
+                    weightedSum += value * weights[index];
+                });
+                return { ...row, WeightedSum: weightedSum };
+            });
+
+            weightedData.sort((a, b) => b.WeightedSum - a.WeightedSum);
+
+            displayResults(weightedData);
+        }
+
+        function displayResults(data) {
+            const table = document.getElementById('results-table');
+            table.innerHTML = '';
+
+            const headerRow = table.insertRow();
+            ['Rank', ...headers, 'Weighted Sum'].forEach(header => {
+                const th = document.createElement('th');
+                th.textContent = header;
+                headerRow.appendChild(th);
+            });
+
+            data.forEach((row, index) => {
+                const tableRow = table.insertRow();
+                tableRow.insertCell().textContent = index + 1;
+                headers.forEach(header => {
+                    tableRow.insertCell().textContent = row[header];
+                });
+                tableRow.insertCell().textContent = row.WeightedSum.toFixed(2);
+            });
+
+            document.getElementById('results-section').style.display = 'block';
+        }
+
+        function downloadResults() {
+            const ws = XLSX.utils.table_to_sheet(document.getElementById('results-table'));
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Results");
+            XLSX.writeFile(wb, "weighted_results.xlsx");
+        }
+    </script>
+</body>
+</html>
