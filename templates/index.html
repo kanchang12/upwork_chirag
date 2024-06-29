@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chatbot</title>
+    <title>CSV Upload and Analysis Tool</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -40,29 +40,21 @@
             border: 1px solid #ccc;
             margin-bottom: 10px;
         }
-        .submit-button {
+        .submit-button, .download-button {
             background-color: #003366;
             color: #fff;
             padding: 10px 20px;
             border: none;
             cursor: pointer;
+            margin-right: 10px;
         }
-        .submit-button:hover {
+        .submit-button:hover, .download-button:hover {
             background-color: #0055a5;
-        }
-        .nav-link {
-            display: block;
-            margin-bottom: 20px;
-            color: #003366;
-            text-decoration: none;
-            font-weight: bold;
-        }
-        .nav-link:hover {
-            text-decoration: underline;
         }
         table {
             border-collapse: collapse;
             width: 100%;
+            margin-bottom: 10px;
         }
         th, td {
             border: 1px solid #ddd;
@@ -72,20 +64,30 @@
         th {
             background-color: #f2f2f2;
         }
+        .analysis-section {
+            display: none;
+            margin-top: 20px;
+        }
+        .analysis-form {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .column-select {
+            margin-right: 10px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-      
-        
         <div class="upload-section">
             <h2>Upload CSV File</h2>
             <form id="upload-form" enctype="multipart/form-data">
                 <input type="file" name="document" accept=".csv" required>
                 <button type="submit" class="submit-button">Upload</button>
+                <span id="file-name"></span>
             </form>
         </div>
-        
         <div class="chat-section">
             <h2>Chat Transcript</h2>
             <div class="chat-transcript" id="chat-transcript"></div>
@@ -93,10 +95,35 @@
                 <input type="text" id="query-input" class="query-input" name="message" placeholder="Type your query here..." required>
                 <button type="submit" class="submit-button">Submit</button>
             </form>
+            <div class="download-buttons">
+                <button id="download-csv" class="download-button" style="display: none;">Download as CSV</button>
+                <button id="download-xlsx" class="download-button" style="display: none;">Download as XLSX</button>
+            </div>
+        </div>
+
+        <!-- Analysis Section -->
+        <div class="analysis-section" id="analysis-section">
+            <h2>Analysis Setup</h2>
+            <div id="column-selection">
+                <div class="analysis-form">
+                    <select id="column-1" class="column-select"></select>
+                    <select id="column-2" class="column-select"></select>
+                    <select id="column-3" class="column-select"></select>
+                    <select id="column-4" class="column-select"></select>
+                    <select id="column-5" class="column-select"></select>
+                    <input type="number" id="weight" step="0.01" min="0" max="1" placeholder="Enter weight (0 to 1)">
+                </div>
+                <button id="analyze-button" class="submit-button">Analyze</button>
+            </div>
+            <div class="download-buttons">
+                <button id="download-analyzed" class="download-button" style="display: none;">Download Analyzed Data</button>
+            </div>
         </div>
     </div>
 
     <script>
+        let csvData = null;
+
         document.getElementById('upload-form').addEventListener('submit', function(event) {
             event.preventDefault();
             const formData = new FormData(event.target);
@@ -106,15 +133,109 @@
             })
             .then(response => response.json())
             .then(data => {
-                alert(data.message || data.error);
+                if (data.filename) {
+                    document.getElementById('file-name').textContent = `File uploaded: ${data.filename}`;
+                    csvData = data.data; // Store CSV data for future use
+                    populateColumnDropdowns(data.columns);
+                    document.getElementById('analysis-section').style.display = 'block';
+                } else {
+                    alert(data.error || 'Error uploading file');
+                }
             })
             .catch(error => console.error('Error:', error));
         });
-    
+
+        function populateColumnDropdowns(columns) {
+            const dropdowns = document.querySelectorAll('.column-select');
+            dropdowns.forEach(dropdown => {
+                columns.forEach(column => {
+                    const option = document.createElement('option');
+                    option.value = column;
+                    option.textContent = column;
+                    dropdown.appendChild(option);
+                });
+            });
+        }
+
+        document.getElementById('analyze-button').addEventListener('click', function() {
+            const selectedColumns = [];
+            const dropdowns = document.querySelectorAll('.column-select');
+            dropdowns.forEach(dropdown => {
+                selectedColumns.push(dropdown.value);
+            });
+
+            const weight = parseFloat(document.getElementById('weight').value);
+            if (isNaN(weight) || weight <= 0 || weight > 1) {
+                alert('Please enter a valid weight (0 to 1)');
+                return;
+            }
+
+            const analyzedData = analyzeData(selectedColumns, weight);
+            displayAnalysisResults(analyzedData);
+            document.getElementById('download-analyzed').style.display = 'inline-block';
+        });
+
+        function analyzeData(selectedColumns, weight) {
+            const analyzedData = csvData.map(row => {
+                const calculatedValue = selectedColumns.reduce((acc, column) => {
+                    const value = parseFloat(row[column]);
+                    return acc + (isNaN(value) ? 0 : value) * weight;
+                }, 0);
+                return { ...row, AnalyzedValue: calculatedValue };
+            });
+
+            analyzedData.sort((a, b) => b.AnalyzedValue - a.AnalyzedValue);
+            return analyzedData;
+        }
+
+        function displayAnalysisResults(data) {
+            const resultsTable = document.createElement('table');
+            resultsTable.innerHTML = `<tr><th>Rank</th><th>Country</th><th>Analyzed Value</th></tr>`;
+            data.forEach((row, index) => {
+                const tableRow = resultsTable.insertRow();
+                tableRow.innerHTML = `<td>${index + 1}</td><td>${row['Country']}</td><td>${row['AnalyzedValue']}</td>`;
+            });
+
+            const analysisSection = document.querySelector('.analysis-section');
+            analysisSection.appendChild(resultsTable);
+        }
+
+        document.getElementById('download-analyzed').addEventListener('click', function() {
+            if (!csvData) {
+                alert('No data to download');
+                return;
+            }
+
+            const selectedColumns = document.querySelectorAll('.column-select');
+            const headers = Array.from(selectedColumns).map(select => select.value);
+            const analyzedData = analyzeData(headers, parseFloat(document.getElementById('weight').value));
+
+            const csvContent = headers.join(',') + '\n' +
+                               analyzedData.map(row => headers.map(header => row[header]).join(',')).join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', 'analyzed_data.csv');
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        });
+
         document.getElementById('chat-form').addEventListener('submit', function(event) {
             event.preventDefault();
             const message = document.getElementById('query-input').value;
-            console.log("Sending message:", message);
+            const chatTranscript = document.getElementById('chat-transcript');
+
+            const userMessage = document.createElement('div');
+            userMessage.className = 'chat-message user-message';
+            userMessage.textContent = `You: ${message}`;
+            chatTranscript.appendChild(userMessage);
+
             fetch('/chat', {
                 method: 'POST',
                 headers: {
@@ -124,48 +245,89 @@
             })
             .then(response => response.json())
             .then(data => {
-                console.log("Received data:", data);
-                const chatTranscript = document.getElementById('chat-transcript');
-                const newMessage = document.createElement('div');
+                const aiMessage = document.createElement('div');
+                aiMessage.className = 'chat-message ai-message';
+                
                 if (data.error) {
-                    newMessage.textContent = `Error: ${data.error}`;
-                } else if (data.result) {
-                    newMessage.textContent = `Result: ${data.result}`;
-                } else if (Array.isArray(data)) {
-                    newMessage.innerHTML = createTable(data);
-                } else if (typeof data === 'object' && data !== null) {
-                    newMessage.innerHTML = createTable([data]);
+                    aiMessage.textContent = `AI: Error: ${data.error}`;
                 } else {
-                    newMessage.textContent = `Result: ${JSON.stringify(data)}`;
+                    aiMessage.textContent = 'AI: Here\'s the result:';
+                    
+                    if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'object') {
+                        const table = document.createElement('table');
+                        const headers = Object.keys(data[0]);
+                        
+                        const headerRow = table.insertRow();
+                        headers.forEach(header => {
+                            const th = document.createElement('th');
+                            th.textContent = header;
+                            headerRow.appendChild(th);
+                        });
+
+                        data.forEach(row => {
+                            const dataRow = table.insertRow();
+                            headers.forEach(header => {
+                                const cell = dataRow.insertCell();
+                                cell.textContent = row[header];
+                            });
+                        });
+
+                        aiMessage.appendChild(table);
+                        document.getElementById('download-csv').style.display = 'inline-block';
+                        document.getElementById('download-xlsx').style.display = 'inline-block';
+                    } else {
+                        aiMessage.textContent += ` ${JSON.stringify(data, null, 2)}`;
+                    }
                 }
-                chatTranscript.appendChild(newMessage);
+                chatTranscript.appendChild(aiMessage);
                 chatTranscript.scrollTop = chatTranscript.scrollHeight;
                 document.getElementById('query-input').value = '';
             })
             .catch(error => console.error('Error:', error));
         });
 
-        function createTable(data) {
-            if (data.length === 0) return 'No data available';
+        document.getElementById('download-csv').addEventListener('click', function() {
+            if (!csvData) {
+                alert('No data to download');
+                return;
+            }
 
-            const headers = Object.keys(data[0]);
-            let html = '<table><thead><tr>';
-            headers.forEach(header => {
-                html += `<th>${header}</th>`;
-            });
-            html += '</tr></thead><tbody>';
+            const headers = Object.keys(csvData[0]);
+            let csvContent = headers.join(',') + '\n';
 
-            data.forEach(row => {
-                html += '<tr>';
-                headers.forEach(header => {
-                    html += `<td>${row[header]}</td>`;
+            csvData.forEach(row => {
+                const values = headers.map(header => {
+                    const cell = row[header] + '';
+                    return cell.replace(/"/g, '""');
                 });
-                html += '</tr>';
+                csvContent += values.join(',') + '\n';
             });
 
-            html += '</tbody></table>';
-            return html;
-        }
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', 'result.csv');
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        });
+
+        document.getElementById('download-xlsx').addEventListener('click', function() {
+            if (!csvData) {
+                alert('No data to download');
+                return;
+            }
+
+            const worksheet = XLSX.utils.json_to_sheet(csvData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Results");
+            
+            XLSX.writeFile(workbook, 'result.xlsx');
+        });
     </script>
 </body>
 </html>
