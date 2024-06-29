@@ -26,7 +26,7 @@ def index():
     return render_template('index.html')
 
 @app.route('/second')
-def second():
+def second_page():
     return render_template('second.html')
 
 # Route for file upload
