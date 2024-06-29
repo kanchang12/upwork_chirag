@@ -25,7 +25,7 @@ global_data = None
 def index():
     return render_template('index.html')
 
-@app.route('/second_page')
+@app.route('/second')
 def second_page():
     return render_template('second.html')
 
