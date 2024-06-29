@@ -148,6 +148,7 @@
         function populateColumnDropdowns(columns) {
             const dropdowns = document.querySelectorAll('.column-select');
             dropdowns.forEach(dropdown => {
+                dropdown.innerHTML = '';
                 columns.forEach(column => {
                     const option = document.createElement('option');
                     option.value = column;
@@ -161,7 +162,9 @@
             const selectedColumns = [];
             const dropdowns = document.querySelectorAll('.column-select');
             dropdowns.forEach(dropdown => {
-                selectedColumns.push(dropdown.value);
+                if (dropdown.value) {
+                    selectedColumns.push(dropdown.value);
+                }
             });
 
             const weight = parseFloat(document.getElementById('weight').value);
@@ -329,5 +332,6 @@
             XLSX.writeFile(workbook, 'result.xlsx');
         });
     </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.2/xlsx.full.min.js"></script>
 </body>
 </html>
