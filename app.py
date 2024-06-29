@@ -25,7 +25,9 @@ global_data = None
 def index():
     return render_template('index.html')
 
-
+@app.route('/second')
+def second_page():
+    return render_template('second.html')
 
 # Route for file upload
 @app.route('/upload', methods=['POST'])
@@ -50,9 +52,20 @@ def upload_file():
     else:
         return jsonify({"error": "Invalid file format. Please upload a CSV file."}), 400
 
+def is_pandas_query(resp):
+    # Define regex pattern to match valid pandas query structures
+    pattern = r'global_data\.[a-zA-Z_]+\([^\)]*\)|global_data\[[\'"][^\'"]+[\'"]\]'
+    
+    # Use re.search to find if the pattern matches the response
+    return bool(re.search(pattern, resp))
+
+
 # Function to generate and verify query
 def generate_and_verify_query(user_input, global_data, max_attempts=1):
-    
+    # Check if user input is a greeting
+    if user_input.strip().lower() in ["hi", "hello"]:
+        return render_template('index.html', response=f"Hi, how may I help you?")
+
     column_names = ", ".join([f"'{col}'" for col in global_data.columns])
     for attempt in range(max_attempts):
         # Generate query using OpenAI
@@ -60,9 +73,13 @@ def generate_and_verify_query(user_input, global_data, max_attempts=1):
 
         # Extract the pandas query from the AI response
         pandas_query = extract_pandas_query(ai_response)
-        print("pandas", pandas_query)
 
-        return pandas_query
+        if is_pandas_query(pandas_query):
+            return pandas_query
+        else:
+            return render_template('index.html', response=ai_response)
+
+    return render_template('index.html', response="Failed to generate a valid query. Please try again.")
 
 # Function to generate query using OpenAI
 def generate_query_with_openai(user_input, column_names):
@@ -118,7 +135,12 @@ def generate_query_with_openai(user_input, column_names):
         temperature=0,
         max_tokens=450
     )
-    return response.choices[0].message.content
+    resp = response.choices[0].message.content
+    if is_pandas_query(resp):
+        return resp
+    else:
+        return render_template('index.html', response=resp)
+
 
 # Function to extract pandas query from AI response
 def extract_pandas_query(ai_response):
@@ -138,7 +160,7 @@ def process_query(query):
 
 def format_result(result):
     if isinstance(result, dict) and "Result" in result:
-        return result["Result"]  # Return the value associated with "Result" key
+        pass
 
     elif isinstance(result, pd.Series):
         # Check if the result is a Series (e.g., country scores)
@@ -200,4 +222,3 @@ def chat():
 
 if __name__ == '__main__':
     app.run(debug=True)
-
