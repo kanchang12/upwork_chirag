@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document Upload and Ranking Tool</title>
+    <title>Chatbot</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -19,7 +19,7 @@
             background-color: #fff;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
-        .upload-section, .ranking-section, .chat-section {
+        .upload-section, .chat-section {
             margin-bottom: 20px;
         }
         h2 {
@@ -50,27 +50,42 @@
         .submit-button:hover {
             background-color: #0055a5;
         }
+        .nav-link {
+            display: block;
+            margin-bottom: 20px;
+            color: #003366;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .nav-link:hover {
+            text-decoration: underline;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
     </style>
 </head>
 <body>
     <div class="container">
+        <a href="{{ url_for('second_page') }}" class="nav-link">File Generation</a>
+        
         <div class="upload-section">
-            <h2>Upload Document</h2>
-            <form action="/upload" method="post" enctype="multipart/form-data">
-                <input type="file" name="document" required>
+            <h2>Upload CSV File</h2>
+            <form id="upload-form" enctype="multipart/form-data">
+                <input type="file" name="document" accept=".csv" required>
                 <button type="submit" class="submit-button">Upload</button>
             </form>
         </div>
-        <div class="ranking-section">
-            <h2>Ranking Tool</h2>
-            <select id="table-dropdown">
-                <!-- Options will be populated dynamically -->
-            </select>
-            <input type="number" id="patient-incidence" placeholder="Patient Incidence">
-            <input type="number" id="competition" placeholder="Competition">
-            <input type="number" id="recruitment-rate" placeholder="Recruitment Rate">
-            <button class="submit-button" onclick="createRanking()">Create</button>
-        </div>
+        
         <div class="chat-section">
             <h2>Chat Transcript</h2>
             <div class="chat-transcript" id="chat-transcript"></div>
@@ -82,89 +97,75 @@
     </div>
 
     <script>
-        function submitQuery() {
-            const queryInput = document.getElementById('query-input');
-            const query = queryInput.value;
-
-            if (query.trim() !== "") {
-                const chatTranscript = document.getElementById('chat-transcript');
-                const newMessage = document.createElement('div');
-                newMessage.textContent = `You: ${query}`;
-                chatTranscript.appendChild(newMessage);
-
-                queryInput.value = "";
-            }
-        }
-
-        function createRanking() {
-            const table = document.getElementById('table-dropdown').value;
-            const patientIncidence = document.getElementById('patient-incidence').value;
-            const competition = document.getElementById('competition').value;
-            const recruitmentRate = document.getElementById('recruitment-rate').value;
-
-            const data = {
-                table,
-                patientIncidence: parseFloat(patientIncidence),
-                competition: parseFloat(competition),
-                recruitmentRate: parseFloat(recruitmentRate)
-            };
-
-            fetch('/create_ranking', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
-            })
-            .then(response => response.blob())
-            .then(blob => {
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = 'ranking_result.xlsx';
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-            })
-            .catch(error => console.error('Error:', error));
-        }
-
-        document.getElementById('chat-form').addEventListener('submit', function(event) {
+        document.getElementById('upload-form').addEventListener('submit', function(event) {
             event.preventDefault();
             const formData = new FormData(event.target);
-            fetch('/chat', {
+            fetch('/upload', {
                 method: 'POST',
                 body: formData
             })
             .then(response => response.json())
             .then(data => {
+                alert(data.message || data.error);
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    
+        document.getElementById('chat-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const message = document.getElementById('query-input').value;
+            console.log("Sending message:", message);
+            fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message: message })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("Received data:", data);
                 const chatTranscript = document.getElementById('chat-transcript');
                 const newMessage = document.createElement('div');
-                newMessage.textContent = `Assistant: ${data.response}`;
+                if (data.error) {
+                    newMessage.textContent = `Error: ${data.error}`;
+                } else if (data.result) {
+                    newMessage.textContent = `Result: ${data.result}`;
+                } else if (Array.isArray(data)) {
+                    newMessage.innerHTML = createTable(data);
+                } else if (typeof data === 'object' && data !== null) {
+                    newMessage.innerHTML = createTable([data]);
+                } else {
+                    newMessage.textContent = `Result: ${JSON.stringify(data)}`;
+                }
                 chatTranscript.appendChild(newMessage);
+                chatTranscript.scrollTop = chatTranscript.scrollHeight;
+                document.getElementById('query-input').value = '';
             })
             .catch(error => console.error('Error:', error));
         });
 
-        // Function to fetch and populate table names in dropdown
-        function fetchTables() {
-            fetch('/get_tables')
-                .then(response => response.json())
-                .then(data => {
-                    const dropdown = document.getElementById('table-dropdown');
-                    dropdown.innerHTML = '';
-                    data.tables.forEach(table => {
-                        const option = document.createElement('option');
-                        option.value = table;
-                        option.textContent = table;
-                        dropdown.appendChild(option);
-                    });
-                })
-                .catch(error => console.error('Error:', error));
-        }
+        function createTable(data) {
+            if (data.length === 0) return 'No data available';
 
-        document.addEventListener('DOMContentLoaded', fetchTables);
+            const headers = Object.keys(data[0]);
+            let html = '<table><thead><tr>';
+            headers.forEach(header => {
+                html += `<th>${header}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+
+            data.forEach(row => {
+                html += '<tr>';
+                headers.forEach(header => {
+                    html += `<td>${row[header]}</td>`;
+                });
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+            return html;
+        }
     </script>
 </body>
 </html>
