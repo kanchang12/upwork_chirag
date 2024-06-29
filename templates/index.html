@@ -123,7 +123,6 @@
 
     <script>
         let csvData = null;
-
         document.getElementById('upload-form').addEventListener('submit', function(event) {
             event.preventDefault();
             const formData = new FormData(event.target);
@@ -133,14 +132,7 @@
             })
             .then(response => response.json())
             .then(data => {
-                if (data.filename) {
-                    document.getElementById('file-name').textContent = `File uploaded: ${data.filename}`;
-                    csvData = data.data; // Store CSV data for future use
-                    populateColumnDropdowns(data.columns);
-                    document.getElementById('analysis-section').style.display = 'block';
-                } else {
-                    alert(data.error || 'Error uploading file');
-                }
+                alert(data.message || data.error);
             })
             .catch(error => console.error('Error:', error));
         });
@@ -228,6 +220,39 @@
                 document.body.removeChild(link);
             }
         });
+        document.getElementById('chat-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const message = document.getElementById('query-input').value;
+            console.log("Sending message:", message);
+            fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message: message })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("Received data:", data);
+                const chatTranscript = document.getElementById('chat-transcript');
+                const newMessage = document.createElement('div');
+                if (data.error) {
+                    newMessage.textContent = `Error: ${data.error}`;
+                } else if (data.result) {
+                    //newMessage.textContent = `Result: ${data.result}`;
+                } else if (Array.isArray(data)) {
+                    newMessage.innerHTML = createTable(data);
+                } else if (typeof data === 'object' && data !== null) {
+                    newMessage.innerHTML = createTable([data]);
+                } else {
+                    //newMessage.textContent = `Result: ${JSON.stringify(data)}`;
+                }
+                chatTranscript.appendChild(newMessage);
+                chatTranscript.scrollTop = chatTranscript.scrollHeight;
+                document.getElementById('query-input').value = '';
+            })
+            .catch(error => console.error('Error:', error));
+        });
 
         document.getElementById('chat-form').addEventListener('submit', function(event) {
             event.preventDefault();
@@ -254,7 +279,7 @@
                 if (data.error) {
                     aiMessage.textContent = `AI: Error: ${data.error}`;
                 } else {
-                    aiMessage.textContent = 'AI: Here\'s the result:';
+                    //aiMessage.textContent = 'AI: Here\'s the result:';
                     
                     if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'object') {
                         const table = document.createElement('table');
@@ -332,6 +357,97 @@
             XLSX.writeFile(workbook, 'result.xlsx');
         });
     </script>
+<script>
+    document.getElementById('chat-form').addEventListener('submit', function(event) {
+        event.preventDefault();
+        const message = document.getElementById('query-input').value.trim().toLowerCase();
+
+        // Handle greetings separately
+        if (['hi', 'hello', 'hey'].includes(message)) {
+            const aiMessage = document.createElement('div');
+            aiMessage.className = 'chat-message ai-message';
+            aiMessage.textContent = 'AI: Hi, how may I help you?';
+            document.getElementById('chat-transcript').appendChild(aiMessage);
+            document.getElementById('query-input').value = '';
+            document.getElementById('chat-transcript').scrollTop = document.getElementById('chat-transcript').scrollHeight;
+            return; // Exit early without making the fetch call
+        }
+
+        // Proceed with fetching the response for non-greeting messages
+        const userMessage = document.createElement('div');
+        userMessage.className = 'chat-message user-message';
+        //userMessage.textContent = `You: ${message}`;
+        document.getElementById('chat-transcript').appendChild(userMessage);
+
+        fetch('/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ message: message })
+        })
+        .then(response => response.json())
+        .then(data => {
+            const aiMessage = document.createElement('div');
+            aiMessage.className = 'chat-message ai-message';
+
+            if (data.error) {
+                aiMessage.textContent = `AI: Error: ${data.error}`;
+            } else if (data.Result && Array.isArray(data.Result)) {
+                //aiMessage.textContent = 'AI: Here\'s the result:';
+
+                const table = document.createElement('table');
+                table.classList.add('result-table');
+
+                // Create header row
+                const headerRow = document.createElement('tr');
+                const headers = ['Rank', 'Country'];
+                headers.forEach(headerText => {
+                    const th = document.createElement('th');
+                    th.textContent = headerText;
+                    headerRow.appendChild(th);
+                });
+                table.appendChild(headerRow);
+
+                // Create data rows
+                data.Result.forEach((country, index) => {
+                    const row = document.createElement('tr');
+                    const rankCell = document.createElement('td');
+                    rankCell.textContent = (index + 1).toString();
+                    row.appendChild(rankCell);
+
+                    const countryCell = document.createElement('td');
+                    countryCell.textContent = country;
+                    row.appendChild(countryCell);
+
+                    table.appendChild(row);
+                });
+
+                aiMessage.appendChild(table);
+                showDownloadButtons();
+            } else {
+                aiMessage.textContent = `AI: Result: ${JSON.stringify(data)}`;
+            }
+
+            document.getElementById('chat-transcript').appendChild(aiMessage);
+            document.getElementById('query-input').value = '';
+            document.getElementById('chat-transcript').scrollTop = document.getElementById('chat-transcript').scrollHeight;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            const errorMessage = document.createElement('div');
+            errorMessage.textContent = 'AI: An error occurred while processing your request.';
+            document.getElementById('chat-transcript').appendChild(errorMessage);
+        });
+    });
+
+    function showDownloadButtons() {
+        document.getElementById('download-csv').style.display = 'inline-block';
+        document.getElementById('download-xlsx').style.display = 'inline-block';
+    }
+</script>
+
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.2/xlsx.full.min.js"></script>
 </body>
 </html>
