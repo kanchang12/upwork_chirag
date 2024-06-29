@@ -23,7 +23,11 @@ global_data = None
 # Route for the index page
 @app.route('/')
 def index():
-    return render_template('index_two.html')
+    return render_template('index.html')
+
+@app.route('/second')
+def second_page():
+    return render_template('second.html')
 
 # Route for file upload
 @app.route('/upload', methods=['POST'])
