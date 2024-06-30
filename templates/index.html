@@ -314,22 +314,22 @@
             .catch(error => console.error('Error:', error));
         });
 
-        document.getElementById('download-csv').addEventListener('click', function() {
-            if (!csvData) {
-                alert('No data to download');
-                return;
-            }
+document.getElementById('download-csv').addEventListener('click', function() {
+    if (!csvData) {
+        alert('No data to download');
+        return;
+    }
 
-            const headers = Object.keys(csvData[0]);
-            let csvContent = headers.join(',') + '\n';
+    const headers = Object.keys(csvData[0]);
+    let csvContent = headers.join(',') + '\n';
 
-            csvData.forEach(row => {
-                const values = headers.map(header => {
-                    const cell = row[header] + '';
-                    return cell.replace(/"/g, '""');
-                });
-                csvContent += values.join(',') + '\n';
-            });
+    csvData.forEach(row => {
+        const values = headers.map(header => {
+            const cell = row[header] + '';
+            return cell.replace(/"/g, '""');
+        });
+        csvContent += values.join(',') + '\n';
+    });
 
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
