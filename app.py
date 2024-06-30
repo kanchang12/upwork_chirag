@@ -177,7 +177,7 @@ def chat():
         return jsonify({"Result": result}), 200
 
     result1 = verify_and_execute_query(result)
-    peint("result1", result1)
+    print("result1", result1)
     
     if isinstance(result1, list) and len(result1) > 0 and isinstance(result1[0], dict):
         # This is for DataFrame results
