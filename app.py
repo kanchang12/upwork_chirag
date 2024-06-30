@@ -2,7 +2,7 @@ from flask import Flask, request, render_template, jsonify
 import os
 import pandas as pd
 import openai
-import numpy as np
+
 import re
 import math
 
@@ -87,30 +87,50 @@ def generate_query_with_openai(user_input, column_names):
     # Available columns: {column_names}.
 
     # CRITICAL RULES:
-    # 1. Return a SINGLE pandas query starting with 'global_data.'.
+    # 1. Return a SINGLE pandas query starting with 'global_data.'. but that query must be able to retun more than one column
     # 2. Use 'global_data.assign()' for new columns.
     # 3. ALWAYS use EXACT column names as provided in the available columns list.
     # 4. Enclose column names in square brackets and double quotes, e.g. global_data["Exact Column Name"].
     # 5. DO NOT use any float() or other type conversions in the query.
     # 6. Include '.sort_values()' for ranking or sorting.
-    # 7. End queries with column selection using double brackets, including ALL requested columns.
+    # 7. End queries with column selection using double brackets.
     # 8. Use explicit numerical values: 0.5, 0.25, etc.
     # 9. Use pd.to_numeric(global_data["Column Name"], errors='coerce') for numeric conversions.
-    # 10. When user asks for multiple columns or values, ALWAYS include all requested columns in the final selection.
+    # 10. For complex queries, return multiple columns as needed.
+
+    # Before writing the query, list the exact column names you will use for:
+    # 1. Patient Incidence
+    # 2. Recruitment Rate
+    # 3. Percentage of sites with no competitor trials
+    # 4. Country
+
+    # Then provide the query using these exact column names.
 
     # If the requested data is not present, respond with: "DATA_NOT_PRESENT: <explanation>"
 
     # Format your response as:
+    # COLUMN NAMES:
+    # 1. Patient Incidence: "Exact Column Name"
+    # 2. Recruitment Rate: "Exact Column Name"
+    # 3. Percentage of sites: "Exact Column Name"
+    # 4. Country: "Exact Column Name"
+
     # PANDAS_QUERY: <single_line_query>
 
     # User Input: {user_input}
-    Please note that the global variable name is global_data. global_datapd or anything are wrong and must not be used.
-    Please read the error and correct the query. The repeat query should not be same as before.
+    Please note that the global variable name is global_data. global_datapd or anything else are wrong and must not be used.
+    Please read the error and correct the query. The repeat query should not be the same as before.
     If user inputs that there is something wrong with query, you must update so that it runs.
     It will have the error and query, you need to fix that accordingly.
 
     If user does not ask anything, say Hi, hello or anything, respond Hi, how may I help you?
-    If the question asks for multiple columns or values, ensure ALL requested columns are included in the final query selection.
+    If the question is like this:
+    rank the countries in a table based on 50% weight for patient incidence, 25% weight for recruitment rate, and 25% based on % of sites with no competition
+    return the query with all the five columns and their values.
+    if user asks share column headers, return the column names only
+    if user asks to list countries based on population, check country and population is Patient Incidence
+    if user asks for roche factor, or anything similar it will be Recruitment Rate
+    if user asks return both the fields, return all the columns user is asking
     """
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT.format(column_names=column_names)},
@@ -180,9 +200,7 @@ def verify_and_execute_query(query):
     
 
 # Route for chat
-
-@app.route('/chat', methods=['GET', 'POST'])
-
+@app.route('/chat', methods=['POST'])
 def chat():
     global global_data
 
@@ -197,21 +215,18 @@ def chat():
     result1 = verify_and_execute_query(result)
     print(result1)
     
-    if isinstance(result1, pd.DataFrame):
-        # Convert DataFrame to list of dicts, including column headers
-        result_list = result1.to_dict(orient='records')
-        return jsonify({"Result": result_list, "Columns": result1.columns.tolist()}), 200
-    elif isinstance(result1, pd.Series):
-        # Convert Series to list of dicts, including index as a column
-        result_list = [{"Index": idx, "Value": val} for idx, val in result1.items()]
-        return jsonify({"Result": result_list, "Columns": ["Index", "Value"]}), 200
-    elif isinstance(result1, (list, np.ndarray)):
-        # Handle list or array
-        return jsonify({"Result": result1.tolist() if isinstance(result1, np.ndarray) else result1}), 200
+    if isinstance(result1, pd.DataFrame) or isinstance(result1, pd.Series):
+        result1 = result1.dropna(axis=1).to_dict(orient='records')
+        first_item = result1[0]  # Get the first dictionary in the list
+        first_key = next(iter(first_item))
+        values_list = [item[first_key] for item in result1]
+        print(values_list)
+        return jsonify({"Result": values_list}), 200
     elif isinstance(result1, (int, float, str)):
-        return jsonify({"Result": result1}), 200
+            return jsonify(format_result(result1))
     else:
-        return jsonify({"Result": str(result1)}), 200
+            return jsonify(result1)
+
 
 if __name__ == '__main__':
     app.run(debug=True)
