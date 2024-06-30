@@ -64,11 +64,11 @@ def is_pandas_query(resp):
 
 
 # Function to generate and verify query
+
 def generate_and_verify_query(user_input, global_data, max_attempts=1):
-    # Check if user input is a greeting or general question
-    user_input_lower = user_input.strip().lower()
-    if user_input_lower in ["hi", "hello"] or not any(word in user_input_lower for word in ["list", "show", "data", "column", "population", "country", "rank"]):
-        return jsonify({"response": f"Hello! How can I assist you with analyzing the uploaded CSV data?"})
+    # Check if user input is a greeting
+    if user_input.strip().lower() in ["hi", "hello"]:
+        return jsonify({"response": "Hello! How can I assist you with analyzing the uploaded CSV data?"})
 
     column_names = ", ".join([f"'{col}'" for col in global_data.columns])
     for attempt in range(max_attempts):
