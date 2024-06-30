@@ -8,7 +8,7 @@ import re
 import math
 
 # Initialize Flask app
-#app = Flask(__name__)
+app = Flask(__name__)
 openai.api_key = os.getenv('OPENAI_API_KEY')
 
 # Initialize Flask app
@@ -47,7 +47,7 @@ def upload_file():
             filename = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
             file.save(filename)
             global_data = pd.read_csv(filename)
-            print("\n\n\nglobal_data at load", global_data)
+            
             print(f"File saved and loaded: {filename}")
             return jsonify({
                 "message": "File uploaded successfully",
@@ -121,7 +121,7 @@ def generate_query_with_openai(user_input, column_names):
     It will have the error and query, you need to fix that accordingly
     If user does not ask anything, say Hi, hello or anything, respond Hi, how may I help you?
     If the question is like this:
-    
+    if count of something is asked, use .unique()
     """
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
@@ -137,7 +137,7 @@ def generate_query_with_openai(user_input, column_names):
     print("user input", user_input)
     print("response", response)
     resp = response.choices[0].message.content
-    print("resp", resp)
+ 
     if is_pandas_query(resp):
         return resp
     else:
@@ -152,7 +152,7 @@ def extract_pandas_query(ai_response):
     return ai_response
 
 def process_query(query):
-    #query = re.sub(r'global_data\["([^"]+)"\]', r'pd.to_numeric(global_data["\1"], errors="coerce")', query)
+    query = re.sub(r'global_data\["([^"]+)"\]', r'pd.to_numeric(global_data["\1"], errors="coerce")', query)
     #query = re.sub(r'([-+]?\d*\.\d+|\d+)', r'pd.to_numeric(\1, errors="coerce")', query)
     print("query", query)
     return query
@@ -202,7 +202,7 @@ def chat():
     # Example function call to generate and verify query
     result = generate_and_verify_query(user_input, global_data, max_attempts=1)
     
-    if result == "Hi, how may I help you?":
+    if isinstance(result, str):
         return jsonify({"result": result}), 200
 
     # Example function call to verify and execute query
