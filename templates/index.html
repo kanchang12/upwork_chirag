@@ -293,7 +293,24 @@ document.getElementById('download-csv').addEventListener('click', function() {
             
             XLSX.writeFile(workbook, 'result.xlsx');
         });
-        document.getElementById('chat-form').addEventListener('submit', function(event) {
+
+        function handleMultiWordCountries(countryName) {
+  const multiWordCountries = [
+    'Republic of Korea',
+    'South Africa',
+    'United Kingdom',
+    'United States',
+    'Russian Federation'
+  ];
+
+  if (multiWordCountries.includes(countryName)) {
+    return countryName;
+  }
+
+  return countryName.split(' ').join(' ');
+}
+
+document.getElementById('chat-form').addEventListener('submit', function(event) {
     event.preventDefault();
     const message = document.getElementById('query-input').value.trim();
     const chatTranscript = document.getElementById('chat-transcript');
@@ -317,13 +334,21 @@ document.getElementById('download-csv').addEventListener('click', function() {
         const aiMessage = document.createElement('div');
         aiMessage.className = 'chat-message ai-message';
 
-        // Check if the data is a large string or a small string
-        if (isLargeString(data)) {
-            const table = createTableFromString(data);
-            aiMessage.appendChild(table);
-        } else {
-            aiMessage.textContent = `AI: ${data}`;
+        // Beautify the JSON data
+        let beautifiedJson;
+        try {
+            // If data is already an object, stringify it. If it's a string, parse it first.
+            const jsonData = typeof data === 'string' ? JSON.parse(data) : data;
+            beautifiedJson = JSON.stringify(jsonData, null, 2);
+        } catch (error) {
+            console.error('Error parsing JSON:', error);
+            beautifiedJson = data; // Fallback to original data if parsing fails
         }
+
+        // Create a pre element for formatted display
+        const preElement = document.createElement('pre');
+        preElement.textContent = `AI: ${beautifiedJson}`;
+        aiMessage.appendChild(preElement);
 
         chatTranscript.appendChild(aiMessage);
         document.getElementById('query-input').value = '';
@@ -345,106 +370,6 @@ function isLargeString(str) {
     return str.length > threshold;
 }
 
-function createTableFromString(dataString) {
-  // Trim whitespace from the input string
-  const trimmedString = dataString.trim();
-
-  // Check if the input is empty
-  if (!trimmedString) {
-    return null; // Handle empty input gracefully (optional)
-  }
-
-  // Split the data string into rows based on newline characters
-  const rows = trimmedString.split('\n');
-
-  const table = document.createElement('table');
-  table.className = 'result-table';
-
-  // Create header row
-  const headerRow = document.createElement('tr');
-  const headers = rows[0].split(/\s+/); // Split the first row into headers based on spaces
-  headers.forEach(headerText => {
-    const th = document.createElement('th');
-    th.textContent = headerText;
-    headerRow.appendChild(th);
-  });
-  table.appendChild(headerRow);
-
-  // Create data rows
-  const dataRows = [];
-  for (let i = 1; i < rows.length; i++) {
-    const rowData = rows[i].split(/\s+/); // Split each row into cells based on spaces
-    const countryName = handleMultiWordCountries(rowData.slice(1).join(' '));
-    const patientIncidence = parseFloat(rowData[2].replace(/,/g, ''));
-    const recruitmentRate = parseFloat(rowData[3]);
-    const noCompetitorTrials = parseFloat(rowData[4]);
-
-    const score =
-      0.5 * patientIncidence +
-      0.25 * recruitmentRate +
-      0.25 * noCompetitorTrials;
-
-    dataRows.push({
-      country: countryName,
-      patientIncidence,
-      recruitmentRate,
-      noCompetitorTrials,
-      score
-    });
-  }
-
-  // Sort data rows based on the calculated score
-  dataRows.sort((a, b) => b.score - a.score);
-
-  // Create data rows in the sorted order
-  dataRows.forEach(row => {
-    const dataRow = document.createElement('tr');
-
-    headers.forEach((headerText, index) => {
-      const td = document.createElement('td');
-      switch (headerText.trim()) {
-        case 'Country':
-          td.textContent = row.country || '';
-          break;
-        case 'Patient Incidence':
-          td.textContent = row.patientIncidence || '';
-          break;
-        case 'Roche Recruitment Rate':
-          td.textContent = row.recruitmentRate || '';
-          break;
-        case 'Percentage of sites with no competitor trials':
-          td.textContent = row.noCompetitorTrials || '';
-          break;
-        case 'Score':
-          td.textContent = row.score || '';
-          break;
-        default:
-          td.textContent = ''; // Handle any other headers
-      }
-      dataRow.appendChild(td);
-    });
-
-    table.appendChild(dataRow);
-  });
-
-  return table;
-}
-
-function handleMultiWordCountries(countryName) {
-  const multiWordCountries = [
-    'Republic of Korea',
-    'South Africa',
-    'United Kingdom',
-    'United States',
-    'Russian Federation'
-  ];
-
-  if (multiWordCountries.includes(countryName)) {
-    return countryName;
-  }
-
-  return countryName;
-}
 
 
 
