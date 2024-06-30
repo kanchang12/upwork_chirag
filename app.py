@@ -1,3 +1,6 @@
+
+
+
 from flask import Flask, request, render_template, jsonify
 import os
 import pandas as pd
@@ -70,9 +73,11 @@ def generate_and_verify_query(user_input, global_data, max_attempts=1):
     for attempt in range(max_attempts):
         # Generate query using OpenAI
         ai_response = generate_query_with_openai(user_input, column_names)
+        print("AI response:", ai_response)
 
         # Extract the pandas query from the AI response
         pandas_query = extract_pandas_query(ai_response)
+        print("Pandas query:", pandas_query)
 
         if is_pandas_query(pandas_query):
             return pandas_query
@@ -83,55 +88,56 @@ def generate_and_verify_query(user_input, global_data, max_attempts=1):
 
 def generate_query_with_openai(user_input, column_names):
     SYSTEM_PROMPT = f"""
-    # You are an AI assistant analyzing CSV data stored in a pandas DataFrame named 'global_data'.
-    # Available columns: {column_names}.
+# You are an AI assistant analyzing CSV data stored in a pandas DataFrame named 'global_data'.
+# Available columns: {column_names}.
 
-    # CRITICAL RULES:
-    # 1. Return a SINGLE pandas query starting with 'global_data.'. but that query must be able to retun more than one column
-    # 2. Use 'global_data.assign()' for new columns.
-    # 3. ALWAYS use EXACT column names as provided in the available columns list.
-    # 4. Enclose column names in square brackets and double quotes, e.g. global_data["Exact Column Name"].
-    # 5. DO NOT use any float() or other type conversions in the query.
-    # 6. Include '.sort_values()' for ranking or sorting.
-    # 7. End queries with column selection using double brackets.
-    # 8. Use explicit numerical values: 0.5, 0.25, etc.
-    # 9. Use pd.to_numeric(global_data["Column Name"], errors='coerce') for numeric conversions.
-    # 10. For complex queries, return multiple columns as needed.
+# CRITICAL RULES:
+# 1. Return a SINGLE pandas query starting with 'global_data.'. The query must be able to return more than one column.
+# 2. Use 'global_data.assign()' for new columns.
+# 3. ALWAYS use EXACT column names as provided in the available columns list.
+# 4. Enclose column names in square brackets and double quotes, e.g. global_data["Exact Column Name"].
+# 5. DO NOT use any float() or other type conversions in the query.
+# 6. Include '.sort_values()' for ranking or sorting.
+# 7. End queries with column selection using double brackets.
+# 8. Use explicit numerical values: 0.5, 0.25, etc.
+# 9. Use pd.to_numeric(global_data["Column Name"], errors='coerce') for numeric conversions.
+# 10. For complex queries, return multiple columns as needed.
 
-    # Before writing the query, list the exact column names you will use for:
-    # 1. Patient Incidence
-    # 2. Recruitment Rate
-    # 3. Percentage of sites with no competitor trials
-    # 4. Country
+# COLUMN MAPPING:
+# - Patient Incidence = Population
+# - Recruitment Rate = Roche Factor
+# - "Percentage of sites with no competitor trials" = use exact column name for this
+# - Country  = use exact column name for country
 
-    # Then provide the query using these exact column names.
+# RESPONSE FORMAT:
+# PANDAS_QUERY: <single_line_query>
 
-    # If the requested data is not present, respond with: "DATA_NOT_PRESENT: <explanation>"
+# IMPORTANT NOTES:
+# - The global variable name is global_data. Do not use global_datapd or any other variation.
+# - If there's an error, correct the query. The new query should not be the same as before.
+# - If user says there's something wrong with the query, update it to make it run correctly.
+# - If user doesn't ask anything data-related, respond with "Hi, how may I help you?"
+# - For complex queries (e.g., ranking countries based on multiple factors), return all relevant columns.
+# - If user asks to share column headers, return a query that includes all columns.
+# - If user asks for country and population, return both columns in the query.
+# - Always interpret "population" as "Patient Incidence" and "Roche Factor" as "Recruitment Rate".
+# - When user asks for multiple fields, include ALL requested columns in the query.
 
-    # Format your response as:
-    # COLUMN NAMES:
-    # 1. Patient Incidence: "Exact Column Name"
-    # 2. Recruitment Rate: "Exact Column Name"
-    # 3. Percentage of sites: "Exact Column Name"
-    # 4. Country: "Exact Column Name"
+# Please understand what user is trying to say. If it is pandas query, that is asking for specific data, create pandas query as normal
+# But if it is general question like hi, return with GENERAL_RESPONSE : <your response>
+# if it is not pandas query, always start with the phrase GENERAL_RESPONSE
 
-    # PANDAS_QUERY: <single_line_query>
+# EXAMPLE QUERIES:
+#always take the correct column name from Available columns: {column_names}.
+# # Rank countries by patient incidence:
+# PANDAS_QUERY: global_data.sort_values("Patient Incidence", ascending=False)[["Country ", "Patient Incidence"]]
 
-    # User Input: {user_input}
-    Please note that the global variable name is global_data. global_datapd or anything else are wrong and must not be used.
-    Please read the error and correct the query. The repeat query should not be the same as before.
-    If user inputs that there is something wrong with query, you must update so that it runs.
-    It will have the error and query, you need to fix that accordingly.
-
-    If user does not ask anything, say Hi, hello or anything, respond Hi, how may I help you?
-    If the question is like this:
-    rank the countries in a table based on 50% weight for patient incidence, 25% weight for recruitment rate, and 25% based on % of sites with no competition
-    return the query with all the five columns and their values.
-    if user asks share column headers, return the column names only
-    if user asks to list countries based on population, check country and population is Patient Incidence
-    if user asks for roche factor, or anything similar it will be Recruitment Rate
-    if user asks return both the fields, return all the columns user is asking
-    """
+# # Rank countries based on multiple factors:
+# PANDAS_QUERY: global_data.assign(Score = 0.5 * pd.to_numeric(global_data["Patient Incidence"], errors='coerce') + 0.25 * pd.to_numeric(global_data["Recruitment Rate"], errors='coerce') + 0.25 * pd.to_numeric(global_data["Percentage of sites with no competitor trials"], errors='coerce')).sort_values("Score", ascending=False)[["Country", "Patient Incidence", "Recruitment Rate", "Percentage of sites with no competitor trials", "Score"]]
+# can you provide list of countries based on population: this is actually asking for list of counties sorted by population so pandas enquiry, so you have to understand what user is asking for 
+# User Input: {user_input}
+# Provide a pandas query that accurately addresses the user's request, ensuring all asked-for data is included.
+"""
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT.format(column_names=column_names)},
         {"role": "user", "content": user_input}
@@ -140,20 +146,23 @@ def generate_query_with_openai(user_input, column_names):
         model="gpt-3.5-turbo-16k",
         messages=messages,
         temperature=0,
-        max_tokens=450
+        max_tokens=650
     )
     resp = response.choices[0].message.content
-    if is_pandas_query(resp):
-        return resp
+    print("response: ", resp)
+    
+    print("AI Return: ", resp)
+    if resp.lower().startswith('General_response'.lower()):
+        result1 = resp
     else:
-        return render_template('index.html', response=resp)
+        return resp
 
 
 # Function to extract pandas query from AI response
 def extract_pandas_query(ai_response):
     match = re.search(r'PANDAS_QUERY:\s*(.*)', ai_response, re.DOTALL)
     if match:
-        return match.group(1).strip()
+        return match.group(1)
     return None
 
 def process_query(query):
@@ -213,8 +222,28 @@ def chat():
 
     result = generate_and_verify_query(user_input, global_data, max_attempts=1)
     result1 = verify_and_execute_query(result)
-    print(result1)
-    
+    print("result", result1)
+    # Check if result1 is a pandas DataFrame
+    if isinstance(result1, pd.DataFrame):
+        # Check for NaN values in any column
+        if result1.isnull().any().any():
+            # Drop columns with NaN values
+            result1 = result1.dropna(axis=1)
+            RESULT1_STR = result1.to_string(index=False)
+        
+            return jsonify(RESULT1_STR)
+            #return render_template('index.html', table=result1.to_html())
+        else:
+            # Render single value to HTML template
+            RESULT1_STR = result1.to_string(index=False)
+            return jsonify(RESULT1_STR)
+            #return render_template('index.html', value=result1)
+    elif isinstance(result1, list):
+
+        return jsonify(''.join(', '.join(map(str, row)) for row in result1))
+    else:
+        return jsonify(result1)
+    """
     if isinstance(result1, pd.DataFrame) or isinstance(result1, pd.Series):
         result1 = result1.dropna(axis=1).to_dict(orient='records')
         first_item = result1[0]  # Get the first dictionary in the list
@@ -226,7 +255,7 @@ def chat():
             return jsonify(format_result(result1))
     else:
             return jsonify(result1)
-
+"""
 
 if __name__ == '__main__':
     app.run(debug=True)
