@@ -82,7 +82,8 @@ def generate_and_verify_query(user_input, global_data, max_attempts=1):
         if is_pandas_query(pandas_query):
             return pandas_query
         else:
-            return render_template('index.html', response=ai_response)
+            result1 = pandas_query
+            return jsonify(result1)
 
     return render_template('index.html', response="Failed to generate a valid query. Please try again.")
 
