@@ -76,6 +76,15 @@
         .column-select {
             margin-right: 10px;
         }
+        pre.chat-message {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: monospace;
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 5px 0;
+        }
     </style>
 </head>
 <body>
@@ -190,6 +199,8 @@
                 })
                 .then(response => response.json())
                 .then(data => {
+                    console.log('Received data:', JSON.stringify(data, null, 2)); // Log the received data
+
                     if (data.error) {
                         displayMessage('AI: Error: ' + data.error, 'ai-message');
                     } else if (data.columns && data.data) {
@@ -197,11 +208,15 @@
                     } else if (data.response) {
                         displayMessage('AI: ' + data.response, 'ai-message');
                     } else if (data.result) {
-                        displayMessage('AI: ' + data.result, 'ai-message');
+                        if (typeof data.result === 'object') {
+                            displayMessage('AI: ' + JSON.stringify(data.result, null, 2), 'ai-message');
+                        } else {
+                            displayMessage('AI: ' + data.result, 'ai-message');
+                        }
                     } else if (data.Result && Array.isArray(data.Result)) {
                         displayRankedTable(data.Result);
                     } else {
-                        displayMessage('AI: ' + JSON.stringify(data), 'ai-message');
+                        displayMessage('AI: ' + JSON.stringify(data, null, 2), 'ai-message');
                     }
                     showDownloadButtons();
                 })
@@ -214,17 +229,13 @@
             });
     
             function displayMessage(message, className) {
-    const chatTranscript = document.getElementById('chat-transcript');
-    const messageElement = document.createElement('div');
-    
-    messageElement.textContent = message;
-
-    
-    messageElement.classList.add('chat-message', className);
-    chatTranscript.appendChild(messageElement);
-    chatTranscript.scrollTop = chatTranscript.scrollHeight;
-}
-
+                const chatTranscript = document.getElementById('chat-transcript');
+                const messageElement = document.createElement('pre'); // Changed to <pre> for better formatting
+                messageElement.textContent = message;
+                messageElement.classList.add('chat-message', className);
+                chatTranscript.appendChild(messageElement);
+                chatTranscript.scrollTop = chatTranscript.scrollHeight;
+            }
    
             function displayTable(columns, data) {
                 const chatTranscript = document.getElementById('chat-transcript');
