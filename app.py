@@ -133,7 +133,9 @@ def generate_query_with_openai(user_input, column_names):
 # PANDAS_QUERY: global_data.sort_values("Patient Incidence", ascending=False)[["Country ", "Patient Incidence"]]
 
 # # Rank countries based on multiple factors:
-# PANDAS_QUERY: global_data.assign(Score = 0.5 * pd.to_numeric(global_data["Patient Incidence"], errors='coerce') + 0.25 * pd.to_numeric(global_data["Recruitment Rate"], errors='coerce') + 0.25 * pd.to_numeric(global_data["Percentage of sites with no competitor trials"], errors='coerce')).sort_values("Score", ascending=False)[["Country", "Patient Incidence", "Recruitment Rate", "Percentage of sites with no competitor trials", "Score"]]
+#Don't mix them up: 
+#rank the countries in a table based on 50% weight for patient incidence, 25% weight for recruitment rate, and 25% based on % of sites with no competition: global_data.assign(Score = 0.5 * pd.to_numeric(global_data["Patient Incidence"], errors='coerce') + 0.25 * pd.to_numeric(global_data["Recruitment Rate"], errors='coerce') + 0.25 * pd.to_numeric(global_data["Percentage of sites with no competitor trials"], errors='coerce')).sort_values("Score", ascending=False)[["Country", "Patient Incidence", "Recruitment Rate", "Percentage of sites with no competitor trials", "Score"]]
+#but rank the countries based on population is different it is to find highest populous country at top and lowest at bottom
 # can you provide list of countries based on population: this is actually asking for list of counties sorted by population so pandas enquiry, so you have to understand what user is asking for 
 # User Input: {user_input}
 # Provide a pandas query that accurately addresses the user's request, ensuring all asked-for data is included.
