@@ -51,21 +51,17 @@
         .submit-button:hover, .download-button:hover {
             background-color: #0055a5;
         }
-        .result-table {
+        table {
             border-collapse: collapse;
             width: 100%;
             margin-bottom: 10px;
-            table-layout: fixed;
         }
-        .result-table th, .result-table td {
+        th, td {
             border: 1px solid #ddd;
             padding: 8px;
             text-align: left;
-            word-wrap: break-word;
-            max-width: 150px;
-            overflow-wrap: break-word;
         }
-        .result-table th {
+        th {
             background-color: #f2f2f2;
         }
         .analysis-section {
@@ -80,18 +76,6 @@
         .column-select {
             margin-right: 10px;
         }
-        .chat-message.user-message {
-            background-color: #d1e7dd;
-            padding: 5px;
-            margin: 5px;
-            border-radius: 5px;
-        }
-        .chat-message.ai-message {
-            background-color: #f8d7da;
-            padding: 5px;
-            margin: 5px;
-            border-radius: 5px;
-        }
     </style>
 </head>
 <body>
@@ -101,7 +85,6 @@
             <form id="upload-form" enctype="multipart/form-data">
                 <input type="file" name="document" accept=".csv" required>
                 <button type="submit" class="submit-button">Upload</button>
-                <span id="file-name"></span>
             </form>
         </div>
         <div class="chat-section">
@@ -116,6 +99,8 @@
                 <button id="download-xlsx" class="download-button" style="display: none;">Download as XLSX</button>
             </div>
         </div>
+
+        <!-- Analysis Section -->
         <div class="analysis-section" id="analysis-section">
             <h2>Analysis Setup</h2>
             <div id="column-selection">
@@ -134,163 +119,235 @@
             </div>
         </div>
     </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.2/xlsx.full.min.js"></script>
-    <script>
-        let csvData = null;
-        document.getElementById('upload-form').addEventListener('submit', function(event) {
-            event.preventDefault();
-            const formData = new FormData(event.target);
-            fetch('/upload', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    alert(data.error);
-                } else {
-                    csvData = data; // Assuming the response contains the CSV data as JSON
-                    alert(data.message);
-                }
-            })
-            .catch(error => console.error('Error:', error));
-        });
 
-        function populateColumnDropdowns(columns) {
-            const dropdowns = document.querySelectorAll('.column-select');
-            dropdowns.forEach(dropdown => {
-                dropdown.innerHTML = '';
-                columns.forEach(column => {
-                    const option = document.createElement('option');
-                    option.value = column;
-                    option.textContent = column;
-                    dropdown.appendChild(option);
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            let csvData = null;
+    
+            // File upload functionality
+            document.getElementById('upload-form').addEventListener('submit', function(event) {
+                event.preventDefault();
+                
+                const formData = new FormData(this);
+                const fileInput = this.querySelector('input[type="file"]');
+                
+                if (fileInput.files.length === 0) {
+                    alert('Please select a file to upload.');
+                    return;
+                }
+    
+                console.log('File selected:', fileInput.files[0].name);
+    
+                fetch('/upload', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Response data:', data);
+                    if (data.error) {
+                        alert('Error: ' + data.error);
+                    } else {
+                        alert(data.message);
+                        csvData = data.data; // Assuming data.data contains the parsed CSV data
+                        if (data.columns) {
+                            populateColumnDropdowns(data.columns);
+                            document.querySelector('.analysis-section').style.display = 'block';
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred during upload.');
                 });
             });
-        }
-
-        function showDownloadButtons() {
-            document.getElementById('download-csv').style.display = 'inline-block';
-            document.getElementById('download-xlsx').style.display = 'inline-block';
-        }
-
-        document.getElementById('analyze-button').addEventListener('click', function() {
-            const selectedColumns = [];
-            const dropdowns = document.querySelectorAll('.column-select');
-            dropdowns.forEach(dropdown => {
-                if (dropdown.value) {
-                    selectedColumns.push(dropdown.value);
+    
+            // Chat functionality
+            document.getElementById('chat-form').addEventListener('submit', function(event) {
+                event.preventDefault();
+                const message = document.getElementById('query-input').value.trim();
+                const chatTranscript = document.getElementById('chat-transcript');
+    
+                // Display user message
+                displayMessage('User: ' + message, 'user-message');
+    
+                // Handle greetings separately
+                if (['hi', 'hello', 'hey'].includes(message.toLowerCase())) {
+                    displayMessage('AI: Hi, how may I help you?', 'ai-message');
+                    document.getElementById('query-input').value = '';
+                    return;
                 }
-            });
-
-            const weight = parseFloat(document.getElementById('weight').value);
-            if (isNaN(weight) || weight <= 0 || weight > 1) {
-                alert('Please enter a valid weight (0 to 1)');
-                return;
-            }
-
-            const analyzedData = analyzeData(selectedColumns, weight);
-            displayAnalysisResults(analyzedData);
-            document.getElementById('download-analyzed').style.display = 'inline-block';
-        });
-
-        function analyzeData(selectedColumns, weight) {
-            const analyzedData = csvData.map(row => {
-                const calculatedValue = selectedColumns.reduce((acc, column) => {
-                    const value = parseFloat(row[column]);
-                    return acc + (isNaN(value) ? 0 : value) * weight;
-                }, 0);
-                return { ...row, AnalyzedValue: calculatedValue };
-            });
-
-            analyzedData.sort((a, b) => b.AnalyzedValue - a.AnalyzedValue);
-            return analyzedData;
-        }
-
-        function displayAnalysisResults(data) {
-            const resultsTable = document.createElement('table');
-            resultsTable.innerHTML = `<tr><th>Rank</th><th>Country</th><th>Analyzed Value</th></tr>`;
-            data.forEach((row, index) => {
-                const tableRow = resultsTable.insertRow();
-                tableRow.innerHTML = `<td>${index + 1}</td><td>${row['Country']}</td><td>${row['AnalyzedValue']}</td>`;
-            });
-
-            const analysisSection = document.querySelector('.analysis-section');
-            analysisSection.appendChild(resultsTable);
-        }
-
-        document.getElementById('download-analyzed').addEventListener('click', function() {
-            if (!csvData) {
-                alert('No data to download');
-                return;
-            }
-
-            const selectedColumns = document.querySelectorAll('.column-select');
-            const headers = Array.from(selectedColumns).map(select => select.value);
-            const analyzedData = analyzeData(headers, parseFloat(document.getElementById('weight').value));
-
-            const csvContent = headers.join(',') + '\n' +
-                               analyzedData.map(row => headers.map(header => row[header]).join(',')).join('\n');
-
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            link.setAttribute('href', url);
-            link.setAttribute('download', 'analyzed_data.csv');
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        });
-
-        document.getElementById('chat-form').addEventListener('submit', function(event) {
-            event.preventDefault();
-            const message = document.getElementById('query-input').value.trim();
-            const chatTranscript = document.getElementById('chat-transcript');
-
-            // Append user message
-            const userMessage = document.createElement('div');
-            userMessage.className = 'chat-message user-message';
-            userMessage.textContent = `User: ${message}`;
-            chatTranscript.appendChild(userMessage);
-
-            // Fetch response for non-greeting messages
-            fetch('/chat', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ message: message })
-            })
-            .then(response => response.json())
-            .then(data => {
-                const aiMessage = document.createElement('div');
-                aiMessage.className = 'chat-message ai-message';
-
-                let displayContent = '';
-                if (data.error) {
-                    displayContent = `Error: ${data.error}`;
-                } else if (data.type === 'dataframe' || data.type === 'list') {
-                    displayContent = JSON.stringify(data.data, null, 2);
-                } else {
-                    displayContent = data.data;
-                }
-
-                const preElement = document.createElement('pre');
-                preElement.textContent = `AI: ${displayContent}`;
-                aiMessage.appendChild(preElement);
-
-                chatTranscript.appendChild(aiMessage);
+    
+                fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ message: message })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        displayMessage('AI: Error: ' + data.error, 'ai-message');
+                    } else if (data.columns && data.data) {
+                        displayTable(data.columns, data.data);
+                    } else if (data.response) {
+                        displayMessage('AI: ' + data.response, 'ai-message');
+                    } else if (data.result) {
+                        displayMessage('AI: ' + data.result, 'ai-message');
+                    } else if (data.Result && Array.isArray(data.Result)) {
+                        displayRankedTable(data.Result);
+                    } else {
+                        displayMessage('AI: ' + JSON.stringify(data), 'ai-message');
+                    }
+                    showDownloadButtons();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    displayMessage('AI: An error occurred while processing your request.', 'ai-message');
+                });
+    
                 document.getElementById('query-input').value = '';
+            });
+    
+            function displayMessage(message, className) {
+                const chatTranscript = document.getElementById('chat-transcript');
+                const messageElement = document.createElement('div');
+                messageElement.textContent = message;
+                messageElement.classList.add('chat-message', className);
+                chatTranscript.appendChild(messageElement);
                 chatTranscript.scrollTop = chatTranscript.scrollHeight;
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                const errorMessage = document.createElement('div');
-                errorMessage.textContent = 'AI: An error occurred while processing your request.';
-                chatTranscript.appendChild(errorMessage);
+            }
+    
+            function displayTable(columns, data) {
+                const chatTranscript = document.getElementById('chat-transcript');
+                const table = document.createElement('table');
+                table.classList.add('result-table');
+    
+                // Create header row
+                const headerRow = table.insertRow();
+                columns.forEach(column => {
+                    const th = document.createElement('th');
+                    th.textContent = column;
+                    headerRow.appendChild(th);
+                });
+    
+                // Create data rows
+                data.forEach(row => {
+                    const tableRow = table.insertRow();
+                    columns.forEach(column => {
+                        const cell = tableRow.insertCell();
+                        cell.textContent = row[column];
+                    });
+                });
+    
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('chat-message', 'ai-message');
+                messageElement.appendChild(table);
+                chatTranscript.appendChild(messageElement);
+                chatTranscript.scrollTop = chatTranscript.scrollHeight;
+            }
+    
+            function displayRankedTable(data) {
+                const chatTranscript = document.getElementById('chat-transcript');
+                const table = document.createElement('table');
+                table.classList.add('result-table');
+    
+                // Create header row
+                const headerRow = table.insertRow();
+                ['Rank', 'Country'].forEach(headerText => {
+                    const th = document.createElement('th');
+                    th.textContent = headerText;
+                    headerRow.appendChild(th);
+                });
+    
+                // Create data rows
+                data.forEach((country, index) => {
+                    const row = table.insertRow();
+                    const rankCell = row.insertCell();
+                    rankCell.textContent = (index + 1).toString();
+                    const countryCell = row.insertCell();
+                    countryCell.textContent = country;
+                });
+    
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('chat-message', 'ai-message');
+                messageElement.appendChild(table);
+                chatTranscript.appendChild(messageElement);
+                chatTranscript.scrollTop = chatTranscript.scrollHeight;
+            }
+    
+            function showDownloadButtons() {
+                document.getElementById('download-csv').style.display = 'inline-block';
+                document.getElementById('download-xlsx').style.display = 'inline-block';
+            }
+    
+            function populateColumnDropdowns(columns) {
+                const dropdowns = document.querySelectorAll('.column-select');
+                dropdowns.forEach(dropdown => {
+                    dropdown.innerHTML = '';
+                    columns.forEach(column => {
+                        const option = document.createElement('option');
+                        option.value = column;
+                        option.textContent = column;
+                        dropdown.appendChild(option);
+                    });
+                });
+            }
+    
+            document.getElementById('download-csv').addEventListener('click', function() {
+                if (!csvData) {
+                    alert('No data to download');
+                    return;
+                }
+    
+                const headers = Object.keys(csvData[0]);
+                let csvContent = headers.join(',') + '\n';
+    
+                csvData.forEach(row => {
+                    const values = headers.map(header => {
+                        const cell = row[header] + '';
+                        return cell.replace(/"/g, '""');
+                    });
+                    csvContent += values.join(',') + '\n';
+                });
+    
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                if (link.download !== undefined) {
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute('href', url);
+                    link.setAttribute('download', 'result.csv');
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+            });
+    
+            document.getElementById('download-xlsx').addEventListener('click', function() {
+                if (!csvData) {
+                    alert('No data to download');
+                    return;
+                }
+    
+                const worksheet = XLSX.utils.json_to_sheet(csvData);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Results");
+                
+                XLSX.writeFile(workbook, 'result.xlsx');
+            });
+    
+            document.getElementById('analyze-button').addEventListener('click', function() {
+                // Add your analysis logic here
+                alert('Analysis button clicked');
             });
         });
     </script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.2/xlsx.full.min.js"></script>
 </body>
 </html>
