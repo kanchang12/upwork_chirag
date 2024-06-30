@@ -125,6 +125,7 @@ def generate_query_with_openai(user_input, column_names):
         max_tokens=450
     )
     resp = response.choices[0].message.content
+    print("resp", resp)
     if is_pandas_query(resp):
         return resp
     else:
@@ -133,6 +134,7 @@ def generate_query_with_openai(user_input, column_names):
 # Function to extract pandas query from AI response
 def extract_pandas_query(ai_response):
     match = re.search(r'PANDAS_QUERY:\s*(.*)', ai_response, re.DOTALL)
+    print("match", match)
     if match:
         return match.group(1).strip()
     return None
@@ -175,6 +177,7 @@ def chat():
         return jsonify({"Result": result}), 200
 
     result1 = verify_and_execute_query(result)
+    peint("result1", result1)
     
     if isinstance(result1, list) and len(result1) > 0 and isinstance(result1[0], dict):
         # This is for DataFrame results
