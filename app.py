@@ -216,7 +216,7 @@ def chat():
         first_item = result1[0]  # Get the first dictionary in the list
         first_key = next(iter(first_item))
         values_list = [item[first_key] for item in result1]
-        print(Values_list)
+        print(values_list)
         return jsonify({"Result": values_list}), 200
     elif isinstance(result1, (int, float, str)):
             return jsonify(format_result(result1))
