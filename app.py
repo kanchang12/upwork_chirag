@@ -124,6 +124,9 @@ def generate_query_with_openai(user_input, column_names):
     It will have the error and query, you need to fix that accordingly
 
     If user does not ask anything, say Hi, hello or anything, respond Hi, how may I help you?
+    id the question is like this:
+    rank the countries in a table based on 50% weight for patient incidence, 25% weight for recruitment rate, and 25% based on % of sites with no competition
+    return the query with all the five columns and their values
     """
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT.format(column_names=column_names)},
