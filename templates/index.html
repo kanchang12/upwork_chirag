@@ -52,28 +52,22 @@
             background-color: #0055a5;
         }
         .result-table {
-    border-collapse: collapse;
-    width: 100%;
-    margin-bottom: 10px;
-    table-layout: fixed; /* Ensure fixed table layout */
-}
-
-.result-table th, .result-table td {
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: left;
-    word-wrap: break-word; /* Enable word wrap */
-    max-width: 150px; /* Set a max width for table cells */
-    overflow-wrap: break-word; /* Ensure long words break properly */
-}
-
-.result-table th {
-    background-color: #f2f2f2; /* Background color for header cells */
-}
-
-
-
-
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 10px;
+            table-layout: fixed;
+        }
+        .result-table th, .result-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            word-wrap: break-word;
+            max-width: 150px;
+            overflow-wrap: break-word;
+        }
+        .result-table th {
+            background-color: #f2f2f2;
+        }
         .analysis-section {
             display: none;
             margin-top: 20px;
@@ -122,8 +116,6 @@
                 <button id="download-xlsx" class="download-button" style="display: none;">Download as XLSX</button>
             </div>
         </div>
-
-        <!-- Analysis Section -->
         <div class="analysis-section" id="analysis-section">
             <h2>Analysis Setup</h2>
             <div id="column-selection">
@@ -142,7 +134,7 @@
             </div>
         </div>
     </div>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.2/xlsx.full.min.js"></script>
     <script>
         let csvData = null;
         document.getElementById('upload-form').addEventListener('submit', function(event) {
@@ -176,10 +168,12 @@
                 });
             });
         }
+
         function showDownloadButtons() {
-    document.getElementById('download-csv').style.display = 'inline-block';
-    document.getElementById('download-xlsx').style.display = 'inline-block';
-}
+            document.getElementById('download-csv').style.display = 'inline-block';
+            document.getElementById('download-xlsx').style.display = 'inline-block';
+        }
+
         document.getElementById('analyze-button').addEventListener('click', function() {
             const selectedColumns = [];
             const dropdowns = document.querySelectorAll('.column-select');
@@ -240,138 +234,63 @@
 
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
-            if (link.download !== undefined) {
-                const url = URL.createObjectURL(blob);
-                link.setAttribute('href', url);
-                link.setAttribute('download', 'analyzed_data.csv');
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            }
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'analyzed_data.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         });
 
-document.getElementById('download-csv').addEventListener('click', function() {
-    if (!csvData) {
-        alert('No data to download');
-        return;
-    }
+        document.getElementById('chat-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const message = document.getElementById('query-input').value.trim();
+            const chatTranscript = document.getElementById('chat-transcript');
 
-    const headers = Object.keys(csvData[0]);
-    let csvContent = headers.join(',') + '\n';
+            // Append user message
+            const userMessage = document.createElement('div');
+            userMessage.className = 'chat-message user-message';
+            userMessage.textContent = `User: ${message}`;
+            chatTranscript.appendChild(userMessage);
 
-    csvData.forEach(row => {
-        const values = headers.map(header => {
-            const cell = row[header] + '';
-            return cell.replace(/"/g, '""');
+            // Fetch response for non-greeting messages
+            fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message: message })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const aiMessage = document.createElement('div');
+                aiMessage.className = 'chat-message ai-message';
+
+                let displayContent = '';
+                if (data.error) {
+                    displayContent = `Error: ${data.error}`;
+                } else if (data.type === 'dataframe' || data.type === 'list') {
+                    displayContent = JSON.stringify(data.data, null, 2);
+                } else {
+                    displayContent = data.data;
+                }
+
+                const preElement = document.createElement('pre');
+                preElement.textContent = `AI: ${displayContent}`;
+                aiMessage.appendChild(preElement);
+
+                chatTranscript.appendChild(aiMessage);
+                document.getElementById('query-input').value = '';
+                chatTranscript.scrollTop = chatTranscript.scrollHeight;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                const errorMessage = document.createElement('div');
+                errorMessage.textContent = 'AI: An error occurred while processing your request.';
+                chatTranscript.appendChild(errorMessage);
+            });
         });
-        csvContent += values.join(',') + '\n';
-    });
-
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            if (link.download !== undefined) {
-                const url = URL.createObjectURL(blob);
-                link.setAttribute('href', url);
-                link.setAttribute('download', 'result.csv');
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            }
-        });
-
-        document.getElementById('download-xlsx').addEventListener('click', function() {
-            if (!csvData) {
-                alert('No data to download');
-                return;
-            }
-
-            const worksheet = XLSX.utils.json_to_sheet(csvData);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Results");
-            
-            XLSX.writeFile(workbook, 'result.xlsx');
-        });
-
-        function handleMultiWordCountries(countryName) {
-  const multiWordCountries = [
-    'Republic of Korea',
-    'South Africa',
-    'United Kingdom',
-    'United States',
-    'Russian Federation'
-  ];
-
-  if (multiWordCountries.includes(countryName)) {
-    return countryName;
-  }
-
-  return countryName.split(' ').join(' ');
-}
-
-document.getElementById('chat-form').addEventListener('submit', function(event) {
-    event.preventDefault();
-    const message = document.getElementById('query-input').value.trim();
-    const chatTranscript = document.getElementById('chat-transcript');
-
-    // Append user message
-    const userMessage = document.createElement('div');
-    userMessage.className = 'chat-message user-message';
-    userMessage.textContent = `User: ${message}`;
-    chatTranscript.appendChild(userMessage);
-
-    // Fetch response for non-greeting messages
-    fetch('/chat', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ message: message })
-    })
-    .then(response => response.json())
-.then(data => {
-    const aiMessage = document.createElement('div');
-    aiMessage.className = 'chat-message ai-message';
-
-    let displayContent = '';
-    if (data.error) {
-        displayContent = `Error: ${data.error}`;
-    } else if (data.type === 'dataframe' || data.type === 'list') {
-        displayContent = JSON.stringify(data.data, null, 2);
-    } else {
-        displayContent = data.data;
-    }
-
-    const preElement = document.createElement('pre');
-    preElement.textContent = `AI: ${displayContent}`;
-    aiMessage.appendChild(preElement);
-
-    chatTranscript.appendChild(aiMessage);
-    document.getElementById('query-input').value = '';
-    chatTranscript.scrollTop = chatTranscript.scrollHeight;
-})
-    .catch(error => {
-        console.error('Error:', error);
-        const errorMessage = document.createElement('div');
-        errorMessage.textContent = 'AI: An error occurred while processing your request.';
-        chatTranscript.appendChild(errorMessage);
-    });
-});
-
-function isLargeString(str) {
-    // Define a threshold for the string length to be considered large
-    const threshold = 100; // Adjust this value as needed
-
-    // Check if the string length exceeds the threshold
-    return str.length > threshold;
-}
-
-
-
-
     </script>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.2/xlsx.full.min.js"></script>
 </body>
 </html>
