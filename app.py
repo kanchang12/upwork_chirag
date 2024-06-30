@@ -206,7 +206,6 @@ def verify_and_execute_query(query):
     return result
     
 
-# Route for chat
 @app.route('/chat', methods=['GET', 'POST'])
 def chat():
     global global_data
@@ -219,8 +218,16 @@ def chat():
         return jsonify({"error": "No message provided"}), 400
 
     result = generate_and_verify_query(user_input, global_data, max_attempts=1)
+    
+    # Check if result is already a JSON response
+    if isinstance(result, tuple) and len(result) == 2 and isinstance(result[0], dict):
+        return result
+
+    # If it's a pandas query, process it as before
     result1 = verify_and_execute_query(result)
     print("result", result1)
+    
+    # Rest of the function remains the same...
     # Check if result1 is a pandas DataFrame
     if isinstance(result1, pd.DataFrame):
         # Check for NaN values in any column
