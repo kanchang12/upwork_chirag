@@ -20,12 +20,10 @@ global_data = None
 def index():
     return render_template('index.html')
 
-@app.route('/second')
-def second_page():
-    return render_template('second.html')
+
 
 # Route for file upload
-@app.route('/upload', methods=['POST'])
+@app.route('/upload', methods=['GET', 'POST'])
 def upload_file():
     global global_data
 
@@ -160,7 +158,7 @@ def verify_and_execute_query(query):
     return result
 
 # Route for chat
-@app.route('/chat', methods=['POST'])
+@app.route('/chat', methods=['GET', 'POST'])
 def chat():
     global global_data
 
