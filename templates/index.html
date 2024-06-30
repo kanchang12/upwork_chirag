@@ -330,30 +330,27 @@ document.getElementById('chat-form').addEventListener('submit', function(event) 
         body: JSON.stringify({ message: message })
     })
     .then(response => response.json())
-    .then(data => {
-        const aiMessage = document.createElement('div');
-        aiMessage.className = 'chat-message ai-message';
+.then(data => {
+    const aiMessage = document.createElement('div');
+    aiMessage.className = 'chat-message ai-message';
 
-        // Beautify the JSON data
-        let beautifiedJson;
-        try {
-            // If data is already an object, stringify it. If it's a string, parse it first.
-            const jsonData = typeof data === 'string' ? JSON.parse(data) : data;
-            beautifiedJson = JSON.stringify(jsonData, null, 2);
-        } catch (error) {
-            console.error('Error parsing JSON:', error);
-            beautifiedJson = data; // Fallback to original data if parsing fails
-        }
+    let displayContent = '';
+    if (data.error) {
+        displayContent = `Error: ${data.error}`;
+    } else if (data.type === 'dataframe' || data.type === 'list') {
+        displayContent = JSON.stringify(data.data, null, 2);
+    } else {
+        displayContent = data.data;
+    }
 
-        // Create a pre element for formatted display
-        const preElement = document.createElement('pre');
-        preElement.textContent = `AI: ${beautifiedJson}`;
-        aiMessage.appendChild(preElement);
+    const preElement = document.createElement('pre');
+    preElement.textContent = `AI: ${displayContent}`;
+    aiMessage.appendChild(preElement);
 
-        chatTranscript.appendChild(aiMessage);
-        document.getElementById('query-input').value = '';
-        chatTranscript.scrollTop = chatTranscript.scrollHeight;
-    })
+    chatTranscript.appendChild(aiMessage);
+    document.getElementById('query-input').value = '';
+    chatTranscript.scrollTop = chatTranscript.scrollHeight;
+})
     .catch(error => {
         console.error('Error:', error);
         const errorMessage = document.createElement('div');
