@@ -2,7 +2,7 @@ from flask import Flask, request, render_template, jsonify
 import os
 import pandas as pd
 import openai
-
+import numpy as np
 import re
 import math
 
@@ -182,6 +182,7 @@ def verify_and_execute_query(query):
 # Route for chat
 
 @app.route('/chat', methods=['GET', 'POST'])
+
 def chat():
     global global_data
 
@@ -211,7 +212,6 @@ def chat():
         return jsonify({"Result": result1}), 200
     else:
         return jsonify({"Result": str(result1)}), 200
-
 
 if __name__ == '__main__':
     app.run(debug=True)
