@@ -81,7 +81,6 @@ def generate_and_verify_query(user_input, global_data, max_attempts=1):
 
     return render_template('index.html', response="Failed to generate a valid query. Please try again.")
 
-# Function to generate query using OpenAI
 def generate_query_with_openai(user_input, column_names):
     SYSTEM_PROMPT = f"""
     # You are an AI assistant analyzing CSV data stored in a pandas DataFrame named 'global_data'.
@@ -97,6 +96,7 @@ def generate_query_with_openai(user_input, column_names):
     # 7. End queries with column selection using double brackets.
     # 8. Use explicit numerical values: 0.5, 0.25, etc.
     # 9. Use pd.to_numeric(global_data["Column Name"], errors='coerce') for numeric conversions.
+    # 10. For complex queries, return multiple columns as needed.
 
     # Before writing the query, list the exact column names you will use for:
     # 1. Patient Incidence
@@ -118,15 +118,15 @@ def generate_query_with_openai(user_input, column_names):
     # PANDAS_QUERY: <single_line_query>
 
     # User Input: {user_input}
-    Please note that the global variable name is global_data. global_datapd or anything are wrong and must not be used
-    Please read the error and correct the query. The repeat query should not be same as before
-    If user inputs that there is something wrong with query, you must upadte so that it runs
-    It will have the error and query, you need to fix that accordingly
+    Please note that the global variable name is global_data. global_datapd or anything else are wrong and must not be used.
+    Please read the error and correct the query. The repeat query should not be the same as before.
+    If user inputs that there is something wrong with query, you must update so that it runs.
+    It will have the error and query, you need to fix that accordingly.
 
     If user does not ask anything, say Hi, hello or anything, respond Hi, how may I help you?
-    id the question is like this:
+    If the question is like this:
     rank the countries in a table based on 50% weight for patient incidence, 25% weight for recruitment rate, and 25% based on % of sites with no competition
-    return the query with all the five columns and their values
+    return the query with all the five columns and their values.
     """
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT.format(column_names=column_names)},
