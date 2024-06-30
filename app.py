@@ -65,15 +65,20 @@ def is_pandas_query(resp):
 
 # Function to generate and verify query
 def generate_and_verify_query(user_input, global_data, max_attempts=1):
-    # Check if user input is a greeting
-    if user_input.strip().lower() in ["hi", "hello"]:
-        return render_template('index.html', response=f"Hi, how may I help you?")
+    # Check if user input is a greeting or general question
+    user_input_lower = user_input.strip().lower()
+    if user_input_lower in ["hi", "hello"] or not any(word in user_input_lower for word in ["list", "show", "data", "column", "population", "country", "rank"]):
+        return jsonify({"response": f"Hello! How can I assist you with analyzing the uploaded CSV data?"})
 
     column_names = ", ".join([f"'{col}'" for col in global_data.columns])
     for attempt in range(max_attempts):
         # Generate query using OpenAI
         ai_response = generate_query_with_openai(user_input, column_names)
         print("AI response:", ai_response)
+
+        # Check if the response is a general response
+        if ai_response.lower().startswith('general_response'):
+            return jsonify({"response": ai_response.split(':', 1)[1].strip()})
 
         # Extract the pandas query from the AI response
         pandas_query = extract_pandas_query(ai_response)
@@ -82,10 +87,9 @@ def generate_and_verify_query(user_input, global_data, max_attempts=1):
         if is_pandas_query(pandas_query):
             return pandas_query
         else:
-            result1 = pandas_query
-            return jsonify(result1)
+            return jsonify({"response": "I couldn't generate a valid query. Could you please rephrase your question?"})
 
-    return render_template('index.html', response="Failed to generate a valid query. Please try again.")
+    return jsonify({"response": "Failed to generate a valid query. Please try again with a more specific question about the data."})
 
 def generate_query_with_openai(user_input, column_names):
     SYSTEM_PROMPT = f"""
