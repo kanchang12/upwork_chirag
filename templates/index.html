@@ -166,7 +166,10 @@
                 });
             });
         }
-
+        function showDownloadButtons() {
+    document.getElementById('download-csv').style.display = 'inline-block';
+    document.getElementById('download-xlsx').style.display = 'inline-block';
+}
         document.getElementById('analyze-button').addEventListener('click', function() {
             const selectedColumns = [];
             const dropdowns = document.querySelectorAll('.column-select');
