@@ -214,14 +214,18 @@
             });
     
             function displayMessage(message, className) {
-                const chatTranscript = document.getElementById('chat-transcript');
-                const messageElement = document.createElement('div');
-                messageElement.textContent = message;
-                messageElement.classList.add('chat-message', className);
-                chatTranscript.appendChild(messageElement);
-                chatTranscript.scrollTop = chatTranscript.scrollHeight;
-            }
+    const chatTranscript = document.getElementById('chat-transcript');
+    const messageElement = document.createElement('div');
     
+    messageElement.textContent = message;
+
+    
+    messageElement.classList.add('chat-message', className);
+    chatTranscript.appendChild(messageElement);
+    chatTranscript.scrollTop = chatTranscript.scrollHeight;
+}
+
+   
             function displayTable(columns, data) {
                 const chatTranscript = document.getElementById('chat-transcript');
                 const table = document.createElement('table');
