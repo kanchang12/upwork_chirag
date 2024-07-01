@@ -99,7 +99,7 @@ def generate_query_with_openai(user_input, column_names):
     If user inputs that there is something wrong with query, you must update so that it runs
     It will have the error and query, you need to fix that accordingly
     If user does not ask anything, say Hi, hello or anything, respond Hi, how may I help you?
-    For COUNT operations, use pd.to_numeric() with errors="coerce" like this  pd.to_numeric(global_data["Country "], errors="coerce")
+    
     check column names {global_data.columns.tolist()} to ensure real column number goes
     Number of countries is 24 if count countries or osmething asked, return 24
     """
@@ -163,7 +163,7 @@ def verify_and_execute_query(query):
         print(f"DEBUG: Error executing query: {str(e)}")
         return json.dumps({"error": f"Error executing query: {str(e)}"})
 
-@app.route('/chat', methods=['POST'])
+@app.route('/chat', methods=['GET', 'POST'])
 def chat():
     global global_data
 
