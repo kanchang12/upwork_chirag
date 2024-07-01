@@ -166,7 +166,7 @@ def verify_and_execute_query(query):
 
         else:
             # Convert other types of results to string
-            return json.dumps({"result": str(result)}
+            return json.dumps({"result": str(result)})
     except Exception as e:
         print(f"DEBUG: Error executing query: {str(e)}")
         return json.dumps({"error": f"Error executing query: {str(e)}"})
