@@ -153,12 +153,20 @@ def verify_and_execute_query(query):
     try:
         result = eval(string_expression, {"global_data": global_data, "pd": pd})
         print(f"DEBUG: Query result type: {type(result)}")
+
         if isinstance(result, pd.DataFrame):
+            # Drop NaN values from DataFrame
+            result = result.dropna(axis=1)
             return json.dumps({"result": result.to_dict(orient="records")})
+
         elif isinstance(result, pd.Series):
+            # Drop NaN values from Series
+            result = result.dropna()
             return json.dumps({"result": result.to_dict()})
+
         else:
-            return json.dumps({"result": str(result)})
+            # Convert other types of results to string
+            return json.dumps({"result": str(result)}
     except Exception as e:
         print(f"DEBUG: Error executing query: {str(e)}")
         return json.dumps({"error": f"Error executing query: {str(e)}"})
@@ -181,7 +189,7 @@ def chat():
     
     if pandas_query:
         query_result = verify_and_execute_query(pandas_query)
-        query_result1 = query_result.dropna(axis=1)
+        
         return jsonify(json.loads(query_result)), 200
     else:
         # Handle case where no valid pandas query is generated
