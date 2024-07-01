@@ -181,6 +181,7 @@ def chat():
     
     if pandas_query:
         query_result = verify_and_execute_query(pandas_query)
+        query_result1 = query_result.dropna(axis=1)
         return jsonify(json.loads(query_result)), 200
     else:
         # Handle case where no valid pandas query is generated
