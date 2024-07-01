@@ -183,7 +183,9 @@ def chat():
         query_result = verify_and_execute_query(pandas_query)
         return jsonify(json.loads(query_result)), 200
     else:
+        # Handle case where no valid pandas query is generated
         return jsonify({"response": ai_response}), 200
+
 
 if __name__ == '__main__':
     app.run(debug=True)
