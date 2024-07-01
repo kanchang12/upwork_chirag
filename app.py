@@ -1,4 +1,5 @@
 
+
 from flask import Flask, request, render_template, jsonify
 import os
 import pandas as pd
@@ -39,6 +40,7 @@ def upload_file():
             filename = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
             file.save(filename)
             global_data = pd.read_csv(filename)
+            print("GLOBAL DATA: ", global_data)
             print(f"DEBUG: File uploaded successfully: {filename}")
             return jsonify({
                 "message": "File uploaded successfully",
@@ -97,7 +99,8 @@ def generate_query_with_openai(user_input, column_names):
     If user inputs that there is something wrong with query, you must update so that it runs
     It will have the error and query, you need to fix that accordingly
     If user does not ask anything, say Hi, hello or anything, respond Hi, how may I help you?
-    For COUNT operations, use .nunique() for unique counts or .count() for total counts
+    For COUNT operations, use pd.to_numeric() with errors="coerce" like this  pd.to_numeric(global_data["Country "], errors="coerce")
+    check column names {global_data.columns.tolist()} to ensure real column number goes
     """
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
@@ -120,8 +123,13 @@ def generate_query_with_openai(user_input, column_names):
     return resp
 
 def extract_pandas_query(ai_response):
-    queries = re.findall(r'PANDAS_QUERY:\s*(global_data\.[^\n]+)', ai_response, re.IGNORECASE)
-    return queries if queries else None
+    
+    match = re.search(r'PANDAS_QUERY:\s*(.+)$', ai_response, re.MULTILINE | re.IGNORECASE)
+    if match:
+        return match.group(1)
+    else:
+        queries = re.findall(r'PANDAS_QUERY:\s*(global_data\.[^\n]+)', ai_response, re.IGNORECASE)
+        return queries if queries else None
 
 def process_query(query):
     query = re.sub(r'global_data\["([^"]+)"\]', r'pd.to_numeric(global_data["\1"], errors="coerce")', query)
@@ -136,7 +144,8 @@ def verify_and_execute_query(query):
         query = query.replace(f'["{col.strip()}"]', f'["{col}"]')
 
     string_expression = process_query(query)
-    print(f"DEBUG: Processed query: {string_expression}")
+    print(f"DEBUG: String expression: {string_expression}")
+    
     
     try:
         result = eval(string_expression, {"global_data": global_data, "pd": pd})
