@@ -101,6 +101,7 @@ def generate_query_with_openai(user_input, column_names):
     If user does not ask anything, say Hi, hello or anything, respond Hi, how may I help you?
     For COUNT operations, use pd.to_numeric() with errors="coerce" like this  pd.to_numeric(global_data["Country "], errors="coerce")
     check column names {global_data.columns.tolist()} to ensure real column number goes
+    There are 24 countries are there
     """
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
