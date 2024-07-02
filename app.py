@@ -103,14 +103,8 @@ def generate_query_with_openai(user_input, column_names):
     You have enough power and youu can do the normalisation, multipication and query creation
     this is only for sort rank etc
     please don't explain stateby state process, just do the calculation and return the query
-     QUERY_START global_data = global_data.assign(
-    Weighted_Rank=(
-        0.5 * global_data["Patient Incidence"] + 
-        0.25 * global_data["Roche Recruitment Rate"] + 
-        0.25 * global_data["Percentage of sites with no competitor trials"]
-    )
-)  QUERY_END
-    you will retun  QUERY_START global_data.sort_values(by="column name", ascending=False) QUERY_END NOTHING ELSE
+     QUERY_START global_data = global_data.assign(Weighted_Rank=( 0.7 * global_data["Patient Incidence"] +   0.35 * global_data["Roche Recruitment Rate"] +    0.05 * global_data["Percentage of sites with no competitor trials"]  )).sort_values(by="Weighted_Rank", ascending=False)  QUERY_END
+     you will retun   QUERY_START global_data = global_data.assign(Weighted_Rank=( 0.7 * global_data["Patient Incidence"] +   0.35 * global_data["Roche Recruitment Rate"] +    0.05 * global_data["Percentage of sites with no competitor trials"]  )).sort_values(by="Weighted_Rank", ascending=False)  QUERY_END
     column name: Patient Incidence it is also called population, patient population etc
     
     column name: Percentage of sites with no competitor trials: also called competition, percentage etc
@@ -119,10 +113,10 @@ def generate_query_with_openai(user_input, column_names):
     if weight not given just sort it by the column name mentioned
     if all the column name mentioned, find average and on average sort it
     but no matter what you have to return a query to sort
-    so your query will be QUERY_START global_data = global_data.assign( Weighted_Rank=( 0.5 * global_data["Patient Incidence"] +  0.25 * global_data["Roche Recruitment Rate"] + 0.25 * global_data["Percentage of sites with no competitor trials"]  )  QUERY_END
+    so your query will be QUERY_START global_data = global_data.assign(Weighted_Rank=( 0.7 * global_data["Patient Incidence"] +   0.35 * global_data["Roche Recruitment Rate"] +    0.05 * global_data["Percentage of sites with no competitor trials"]  )).sort_values(by="Weighted_Rank", ascending=False)  QUERY_END
     these 0.5 etc will be found by user input how they are giving
 
-    must use this format QUERY_START global_data = global_data.assign( Weighted_Rank=( 0.5 * global_data["Patient Incidence"] +  0.25 * global_data["Roche Recruitment Rate"] + 0.25 * global_data["Percentage of sites with no competitor trials"]  )  QUERY_END
+    must use this format  QUERY_START global_data = global_data.assign(Weighted_Rank=( 0.7 * global_data["Patient Incidence"] +   0.35 * global_data["Roche Recruitment Rate"] +    0.05 * global_data["Percentage of sites with no competitor trials"]  )).sort_values(by="Weighted_Rank", ascending=False)  QUERY_END
     if you are using weigted average, use return this QUERY_START global_data.add(global_data.mean(axis=1), axis=0).sort_values(by=global_data.mean(axis=1), ascending=False)  QUERY_END
     """
     
