@@ -95,7 +95,7 @@ def generate_query_with_openai(user_input, column_names):
     Accurate column names are crucial for successful queries.
     You can submit multiple queries separated by new lines, each with QUERY_START and QUERY_END.
     You are adding some extra values resulting in crashes. Please make sure only pandas query to be sent, nothing else.
-
+    
     If user says "hi, hello, greet properly", respond logically.
     If user asks for sort or rank or similar and gives weight1, weight2, weigh3,
     You need to do the sorting yourself. instead of forming a query, you will normalise the columns then multiply with weights
@@ -103,8 +103,18 @@ def generate_query_with_openai(user_input, column_names):
     You have enough power and youu can do the normalisation, multipication and query creation
     this is only for sort rank etc
     please don't explain stateby state process, just do the calculation and return the query
-    Please don't return anything other than QUERY_START global_data.sort_values(by="Weighted_Score", ascending=False) QUERY_END
-    you will retun  QUERY_START global_data.sort_values(by="Weighted_Score", ascending=False) QUERY_END NOTHING ELSE
+    Please don't return anything other than QUERY_START global_data.sort_values(by="column name", ascending=False) QUERY_END
+    you will retun  QUERY_START global_data.sort_values(by="column name", ascending=False) QUERY_END NOTHING ELSE
+    column name: Patient Incidence it is also called population, patient population etc
+    
+    column name: Percentage of sites with no competitor trials: also called competition, percentage etc
+    column name: Roche Recruitment Rate ; also called roche factor, recruitment etc
+    if weight is given then multiply the values by weight and based on the result sort it
+    if weight not given just sort it by the column name mentioned
+    if all the column name mentioned, find average and on average sort it
+    but no matter what you have to return a query to sort
+    so your query will be QUERY_START global_data.sort_values(by=column name (replace it with actual column name), ascending=False) QUERY_END
+    if you are using weigted average, use return this QUERY_START global_data.add(global_data.mean(axis=1), axis=0).sort_values(by=global_data.mean(axis=1), ascending=False)  QUERY_END
     """
     
     special_question = "Can you do a sensitivity analysis for obstructive lung Diseases on the country prioritization for obstructive based on the different scenarios.? Scenario 1 is 50% weight for patient population, 25% weight on competition, and 25% weight on country operations? Scenario 2 would be all these 3 drivers having a equal weight of 33% and scenario 3 would be 50% weight for country ops, 25% weight for patient population, and 25% for competition"
