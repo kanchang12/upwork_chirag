@@ -53,8 +53,7 @@ def is_pandas_query(resp):
 
 def generate_query_with_openai(user_input, column_names):
     column_list = column_names if isinstance(column_names, list) else column_names.split(", ")
-    
-   SYSTEM_PROMPT = f"""
+    SYSTEM_PROMPT = f"""
     You are an AI assistant analyzing CSV data stored in a pandas DataFrame named 'global_data'.
     Available columns: {', '.join(column_list)}.
     CRITICAL RULES:
