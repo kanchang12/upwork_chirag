@@ -54,70 +54,47 @@ def is_pandas_query(resp):
 def generate_query_with_openai(user_input, column_names):
     column_list = column_names if isinstance(column_names, list) else column_names.split(", ")
     
-    SYSTEM_PROMPT = f"""
-    Data: You're working with a pandas DataFrame named global_data.
-
-    Available Columns:
-    {', '.join(column_list)}
-    country is country
-    population is Patient Incidence
-    Roche Recruitment Rate is roche factor or any other name
-
-    Critical Rules:
-    PLEASE RETURN ALL THE FOUR COLUMNS WHEN NOTHING IS SPECIFIED.
-    QUERY_START & QUERY_END: Each query must be enclosed within QUERY_START and QUERY_END. The query itself should be executable (no comments within the query).
-    global_data.assign(): Use this function to create new columns.
-    Exact Column Names: ALWAYS use the exact column names provided in the list above. Enclose them in square brackets and double quotes (e.g., global_data["Column Name"]).
-    Conditional Sorting: Use if or where statements within your queries for sorting based on conditions.
-    Column Selection: End your queries by selecting relevant columns using double brackets [].
-    Numeric Conversions: Use pd.to_numeric(global_data["Column Name"], errors='coerce') to convert columns to numeric format before sorting or calculations.
-    Unique Values: Use .nunique() to count unique values within a column.
-    Multiple Queries: Separate multiple queries with a new line. Each query should still follow the QUERY_START and QUERY_END format.
-    Column Names: Verify column names against the provided list and use exact matches.
-    Explanations: If needed, provide an EXPLANATION: section after your queries to explain the results.
-    Population: Use "Patient Incidence" for population-related queries.
-    Sorting: Unless specified otherwise, sort numerical data in descending order.
-    Unexpected Results: Double-check data types if results are unexpected and provide explanations.
-
-    MAKE NOTE OF IT
-    YOU MUST CHECK THE COLUMN {', '.join(column_list)}
-    If NOTHING IS SPECIFIED, ALL COLUMNS WILL BE RETURNED.
-    THE QUERY SHOULD BE EXECUTABLE REMOVE DIFFERENT THINGS
-    ADD EXPLANATIONS AFTER THE DATA
-
-    Example: if nothing mentioned, all columns will be returned
-
-    QUERY_START
-    global_data[{', '.join([f'"{col}"' for col in column_list])}]
-    QUERY_END
-
-    Remember:
-    Accurate column names are crucial for successful queries.
-    You can submit multiple queries separated by new lines, each with QUERY_START and QUERY_END.
-    You are adding some extra values resulting in crashes. Please make sure only pandas query to be sent, nothing else.
+   SYSTEM_PROMPT = f"""
+    You are an AI assistant analyzing CSV data stored in a pandas DataFrame named 'global_data'.
+    Available columns: {', '.join(column_list)}.
+    CRITICAL RULES:
+    1. Return a SINGLE pandas query starting with 'global_data.'.
+    2. Use 'global_data.assign()' for new columns.
+    3. ALWAYS use EXACT column names as provided in the available columns list.
+    4. Enclose column names in square brackets and double quotes, e.g. global_data["Exact Column Name"].
+    5. DO NOT use any float() or other type conversions in the query.
+    6. Include '.sort_values()' for ranking or sorting.
+    7. End queries with column selection using double brackets, including ALL relevant columns.
+    8. Use explicit numerical values: 0.5, 0.25, etc.
+    9. Use pd.to_numeric(global_data["Column Name"], errors='coerce') for numeric conversions.
+    10. For counting unique values, use .nunique() instead of .unique().count()
+    11. For total counts, use .count()
+    12. ALWAYS verify column names against the provided list and use exact matches.
+    Before writing the query, list the exact column names you will use for:
+    1. Patient Incidence
+    2. Recruitment Rate
+    3. Percentage of sites with no competitor trials
+    4. Country
+    Then provide the query using these exact column names, ensuring ALL relevant columns are included in the output.
+    If the requested data is not present, respond with: "DATA_NOT_PRESENT: <explanation>"
+    Always find the user intent and then get the real column name like population is Patient Incidence, recho factor, recho number are Recruitment rate and so on:
+    You should always return response in THE GIVEN FORMAT:
+    COLUMN NAMES:
+    1. Patient Incidence: "Exact Column Name"
+    2. Recruitment Rate: "Exact Column Name"
+    3. Percentage of sites: "Exact Column Name"
+    4. Country: "Exact Column Name"
+    PANDAS_QUERY: <single_line_query>
+    User Input: {user_input}
+    Please never miss to send the data in the format mentioned above. NEVER
+    Please note that the global variable name is global_data. global_datapd or anything are wrong and must not be used
+    Please read the error and correct the query. The repeat query should not be same as before
+    If user inputs that there is something wrong with query, you must update so that it runs
+    It will have the error and query, you need to fix that accordingly
+    If user does not ask anything, say Hi, hello or anything, respond Hi, how may I help you?
     
-    If user says "hi, hello, greet properly", respond logically.
-    If user asks for sort or rank or similar and gives weight1, weight2, weigh3,
-    You need to do the sorting yourself. instead of forming a query, you will normalise the columns then multiply with weights
-    then return a query with new values to sort
-    You have enough power and youu can do the normalisation, multipication and query creation
-    this is only for sort rank etc
-    please don't explain stateby state process, just do the calculation and return the query
-     QUERY_START global_data = global_data.assign(Weighted_Rank=( 0.7 * global_data["Patient Incidence"] +   0.35 * global_data["Roche Recruitment Rate"] +    0.05 * global_data["Percentage of sites with no competitor trials"]  )).sort_values(by="Weighted_Rank", ascending=False)  QUERY_END
-     you will retun   QUERY_START global_data = global_data.assign(Weighted_Rank=( 0.7 * global_data["Patient Incidence"] +   0.35 * global_data["Roche Recruitment Rate"] +    0.05 * global_data["Percentage of sites with no competitor trials"]  )).sort_values(by="Weighted_Rank", ascending=False)  QUERY_END
-    column name: Patient Incidence it is also called population, patient population etc
-    
-    column name: Percentage of sites with no competitor trials: also called competition, percentage etc
-    column name: Roche Recruitment Rate ; also called roche factor, recruitment etc
-    if weight is given then multiply the values by weight and based on the result sort it
-    if weight not given just sort it by the column name mentioned
-    if all the column name mentioned, find average and on average sort it
-    but no matter what you have to return a query to sort
-    so your query will be QUERY_START global_data = global_data.assign(Weighted_Rank=( 0.7 * global_data["Patient Incidence"] +   0.35 * global_data["Roche Recruitment Rate"] +    0.05 * global_data["Percentage of sites with no competitor trials"]  )).sort_values(by="Weighted_Rank", ascending=False)  QUERY_END
-    these 0.5 etc will be found by user input how they are giving
-
-    must use this format  QUERY_START global_data = global_data.assign(Weighted_Rank=( 0.7 * global_data["Patient Incidence"] +   0.35 * global_data["Roche Recruitment Rate"] +    0.05 * global_data["Percentage of sites with no competitor trials"]  )).sort_values(by="Weighted_Rank", ascending=False)  QUERY_END
-    if you are using weigted average, use return this QUERY_START global_data.add(global_data.mean(axis=1), axis=0).sort_values(by=global_data.mean(axis=1), ascending=False)  QUERY_END
+    check column names {global_data.columns.tolist()} to ensure real column number goes
+    Number of countries is 24 if count countries or osmething asked, return 24
     """
     
     special_question = "Can you do a sensitivity analysis for obstructive lung Diseases on the country prioritization for obstructive based on the different scenarios.? Scenario 1 is 50% weight for patient population, 25% weight on competition, and 25% weight on country operations? Scenario 2 would be all these 3 drivers having a equal weight of 33% and scenario 3 would be 50% weight for country ops, 25% weight for patient population, and 25% for competition"
