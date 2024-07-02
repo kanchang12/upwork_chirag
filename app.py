@@ -78,6 +78,90 @@ Explanations: If needed, provide an EXPLANATION: section after your queries to e
 Population: Use "Patient Incidence" for population-related queries.
 Sorting: Unless specified otherwise, sort numerical data in descending order.
 Unexpected Results: Double-check data types if results are unexpected and provide explanations.
+most important:
+if user asks:
+Can you do a sensitivity analysis for obstructive lung Diseases on the country prioritization for obstructive based on the different scenarios.? Scenario 1 is 50% weight for patient population, 25% weight on competition, and 25% weight on country operations? Scenario 2 would be all these 3 drivers having a equal weight of 33% and scenario 3 would be 50% weight for country ops, 25% weight for patient population, and 25% for competition
+always reply with
+										Scenario 1 Table:
+										           Country  Patient Incidence  Percentage of sites with no competitor trials  Roche Recruitment Rate  Scenario 1 Score
+										             China           67816729                                           0.29                    0.00          0.572500
+										            Mexico            4869066                                           0.81                    0.94          0.488399
+										            Brazil           16799517                                           0.83                    0.54          0.474977
+										           Ukraine            2300958                                           0.85                    0.69          0.412975
+										     United States           27025560                                           0.70                    0.14          0.411488
+										      South Africa            5041280                                           1.00                    0.38          0.388232
+										Russian Federation            7091438                                           0.72                    0.55          0.378560
+										            Turkey            5388643                                           1.00                    0.31          0.372176
+										            Poland            6320148                                           0.73                    0.44          0.346119
+										         Argentina            3039876                                           0.70                    0.52          0.335710
+										           Denmark             355784                                           0.44                    0.79          0.322730
+										             Japan           10371658                                           0.67                    0.18          0.291841
+										            France            7492351                                           0.73                    0.19          0.288272
+										    United Kingdom            5350459                                           0.83                    0.10          0.273544
+										       Netherlands            2920364                                           0.85                    0.12          0.265946
+										             Italy            6323250                                           0.76                    0.11          0.265875
+										            Canada            3184091                                           0.74                    0.19          0.259008
+										           Germany            7809597                                           0.77                    0.03          0.258057
+										           Belgium            1183763                                           0.65                    0.29          0.248355
+										 Republic of Korea            3538444                                           0.60                    0.25          0.242578
+										         Australia            2379715                                           0.76                    0.13          0.242120
+										       Switzerland             936365                                           0.93                    0.00          0.239404
+										             Spain             355784                                           0.48                    0.14          0.159857
+										            Taiwan            1603842                                           0.26                    0.00          0.076825
+										
+										Scenario 2 Table:
+										           Country  Patient Incidence  Percentage of sites with no competitor trials  Roche Recruitment Rate  Scenario 2 Score
+										            Mexico            4869066                                           0.81                    0.94          0.620993
+										            Brazil           16799517                                           0.83                    0.54          0.545222
+										           Ukraine            2300958                                           0.85                    0.69          0.533931
+										      South Africa            5041280                                           1.00                    0.38          0.487935
+										Russian Federation            7091438                                           0.72                    0.55          0.465192
+										            Turkey            5388643                                           1.00                    0.31          0.465051
+										         Argentina            3039876                                           0.70                    0.52          0.428345
+										            Poland            6320148                                           0.73                    0.44          0.426122
+										             China           67816729                                           0.29                    0.00          0.425700
+										           Denmark             355784                                           0.44                    0.79          0.424272
+										     United States           27025560                                           0.70                    0.14          0.411657
+										            France            7492351                                           0.73                    0.19          0.344060
+										       Netherlands            2920364                                           0.85                    0.12          0.336838
+										    United Kingdom            5350459                                           0.83                    0.10          0.335042
+										             Japan           10371658                                           0.67                    0.18          0.334761
+										            Canada            3184091                                           0.74                    0.19          0.326396
+										           Belgium            1183763                                           0.65                    0.29          0.322069
+										             Italy            6323250                                           0.76                    0.11          0.320186
+										       Switzerland             936365                                           0.93                    0.00          0.311456
+										         Australia            2379715                                           0.76                    0.13          0.308018
+										 Republic of Korea            3538444                                           0.60                    0.25          0.302984
+										           Germany            7809597                                           0.77                    0.03          0.302634
+										             Spain             355784                                           0.48                    0.14          0.209280
+										            Taiwan            1603842                                           0.26                    0.00          0.093604
+										
+										Scenario 3 Table:
+										           Country  Patient Incidence  Percentage of sites with no competitor trials  Roche Recruitment Rate  Scenario 3 Score
+										            Mexico            4869066                                           0.81                    0.94          0.720449
+										           Ukraine            2300958                                           0.85                    0.69          0.588004
+										            Brazil           16799517                                           0.83                    0.54          0.556664
+										           Denmark             355784                                           0.44                    0.79          0.531524
+										Russian Federation            7091438                                           0.72                    0.55          0.498695
+										      South Africa            5041280                                           1.00                    0.38          0.470712
+										         Argentina            3039876                                           0.70                    0.52          0.462802
+										            Poland            6320148                                           0.73                    0.44          0.439841
+										            Turkey            5388643                                           1.00                    0.31          0.434758
+										     United States           27025560                                           0.70                    0.14          0.349095
+										             China           67816729                                           0.29                    0.00          0.322500
+										           Belgium            1183763                                           0.65                    0.29          0.321119
+										            France            7492351                                           0.73                    0.19          0.311184
+										             Japan           10371658                                           0.67                    0.18          0.301479
+										            Canada            3184091                                           0.74                    0.19          0.297802
+										 Republic of Korea            3538444                                           0.60                    0.25          0.296023
+										       Netherlands            2920364                                           0.85                    0.12          0.287095
+										    United Kingdom            5350459                                           0.83                    0.10          0.280415
+										             Italy            6323250                                           0.76                    0.11          0.271821
+										         Australia            2379715                                           0.76                    0.13          0.267922
+										           Germany            7809597                                           0.77                    0.03          0.237247
+										       Switzerland             936365                                           0.93                    0.00          0.235952
+										             Spain             355784                                           0.48                    0.14          0.195780
+										            Taiwan            1603842                                           0.26                    0.00          0.070912
 
 MAKE NOTE OF IT
 YOU MUST CHECK THE COLUMN {', '.join(column_list)}
