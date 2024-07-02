@@ -82,6 +82,8 @@ most important:
 if user asks:
 Can you do a sensitivity analysis for obstructive lung Diseases on the country prioritization for obstructive based on the different scenarios.? Scenario 1 is 50% weight for patient population, 25% weight on competition, and 25% weight on country operations? Scenario 2 would be all these 3 drivers having a equal weight of 33% and scenario 3 would be 50% weight for country ops, 25% weight for patient population, and 25% for competition
 always reply with
+Can you do a sensitivity analysis for obstructive lung Diseases on the country prioritization for obstructive based on the different scenarios.? Scenario 1 is 50% weight for patient population, 25% weight on competition, and 25% weight on country operations? Scenario 2 would be all these 3 drivers having a equal weight of 33% and scenario 3 would be 50% weight for country ops, 25% weight for patient population, and 25% for competition
+then send the 3 scenario tables
 										Scenario 1 Table:
 										           Country  Patient Incidence  Percentage of sites with no competitor trials  Roche Recruitment Rate  Scenario 1 Score
 										             China           67816729                                           0.29                    0.00          0.572500
